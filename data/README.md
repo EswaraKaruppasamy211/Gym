@@ -1,5 +1,5 @@
 # Data
 
-No database is currently configured. Demo accounts, preferences, chat, and workout history are stored in browser localStorage and are not shared across devices.
+`schema.sql` is the PostgreSQL schema applied idempotently by the backend. It stores account hashes/sessions, user profiles, current app state (active workout and coach messages), and workout history. Progress and Human Visualization are derived from workout history and are not duplicated into separate tables.
 
-Place future database migrations, schema definitions, and data setup files in this folder. Do not store production credentials or real user health data in source control.
+Keep connection strings and production data out of this folder and source control. Set `DATABASE_URL` in the backend environment.

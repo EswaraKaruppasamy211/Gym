@@ -2555,6 +2555,756 @@ body {
   margin: 12px 0;
 }
 
+/* Flexora's final plum, violet, and coral visual system. */
+:root {
+  color-scheme: dark;
+  color: #f8f5f2;
+  background: #100d14;
+  --fitlife-accent: #ff6b5f;
+  --fitlife-accent-dark: #e95c53;
+  --fitlife-ink: #f8f5f2;
+  --fitlife-muted: #b8adbf;
+  --fitlife-line: rgba(184, 173, 191, 0.16);
+  --fitlife-surface: #211a27;
+}
+
+body,
+.app-shell {
+  color: #f8f5f2;
+  background-color: #100d14;
+}
+
+.dashboard-shell {
+  background:
+    radial-gradient(ellipse at 90% 0%, rgba(124, 58, 237, 0.13), transparent 34%),
+    radial-gradient(ellipse at 8% 28%, rgba(255, 107, 95, 0.055), transparent 28%),
+    #100d14;
+}
+
+.topbar,
+.dashboard-nav {
+  color: #f8f5f2;
+}
+
+.nav-links a,
+.dashboard-nav a {
+  color: #c9bfce;
+}
+
+.dashboard-nav {
+  border-color: rgba(184, 173, 191, 0.15);
+  background: rgba(33, 26, 39, 0.94);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.dashboard-nav a:hover,
+.dashboard-nav a:focus-visible {
+  color: #ff8a65;
+  background: rgba(124, 58, 237, 0.15);
+}
+
+.hero-copy h1 {
+  background: linear-gradient(110deg, #f8f5f2 15%, #a78bfa 62%, #ff8a65 100%);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-copy h2,
+.hero-copy p,
+.glass-card,
+.glass-card h3,
+.glass-card h4,
+.section-heading h3,
+.section-heading h4,
+.onboarding-modal,
+.auth-card,
+.language-card {
+  color: #f8f5f2;
+}
+
+.hero-copy p,
+.glass-card p,
+.muted-copy,
+.profile-header span,
+.profile-stats span,
+.exercise-row small,
+.history-row span,
+.section-heading > span,
+.profile-preference span,
+.daily-reminder-card span,
+.recovery-indicator span,
+.recovery-dashboard span,
+.difficulty-trend span,
+.next-session-prediction span {
+  color: #b8adbf;
+}
+
+.eyebrow {
+  color: #c4b5fd;
+  border-color: rgba(167, 139, 250, 0.29);
+  background: rgba(124, 58, 237, 0.13);
+}
+
+.primary-button {
+  color: #1b111a;
+  border-color: #ff8a65;
+  background: linear-gradient(135deg, #ff8a65, #ff6b5f);
+  box-shadow: 0 9px 22px rgba(255, 107, 95, 0.16);
+}
+
+.primary-button:hover {
+  box-shadow: 0 12px 25px rgba(255, 107, 95, 0.24);
+}
+
+.secondary-button,
+.ghost-button {
+  color: #f8f5f2;
+  border-color: rgba(184, 173, 191, 0.22);
+  background: #2a2230;
+}
+
+.secondary-button:hover,
+.ghost-button:hover {
+  border-color: rgba(167, 139, 250, 0.55);
+  background: #352940;
+}
+
+.glass-card,
+.auth-card,
+.onboarding-modal,
+.history-detail-modal,
+.language-card {
+  color: #f8f5f2;
+  border-color: rgba(184, 173, 191, 0.15);
+  background: #211a27;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.2);
+}
+
+.choice-card,
+.equipment-options button {
+  color: #f8f5f2;
+  border-color: rgba(184, 173, 191, 0.18);
+  background: #2a2230;
+}
+
+.choice-card.selected,
+.equipment-options button.selected {
+  color: #f8f5f2;
+  border-color: #a78bfa;
+  background: rgba(124, 58, 237, 0.2);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.1);
+}
+
+.auth-form label,
+.reminder-period-field,
+.equipment-picker legend {
+  color: #d4cad8;
+}
+
+.auth-form input,
+.chat-form input,
+.reminder-period-field select,
+.reminder-period-field input,
+.language-control select {
+  color: #f8f5f2;
+  border-color: rgba(184, 173, 191, 0.2);
+  background: #17131c;
+}
+
+.auth-form input::placeholder,
+.chat-form input::placeholder {
+  color: #91869a;
+}
+
+.chat-window {
+  border-color: rgba(184, 173, 191, 0.14);
+  background: #17131c;
+}
+
+.chat-message.assistant {
+  color: #f8f5f2;
+  border-color: rgba(184, 173, 191, 0.16);
+  background: #2a2230;
+}
+
+.chat-message.user {
+  color: #fff;
+  border-color: #7c3aed;
+  background: #6d32d5;
+}
+
+.prompt-pill,
+.coach-modes button {
+  color: #d4cad8;
+  border-color: rgba(184, 173, 191, 0.17);
+  background: #2a2230;
+}
+
+.prompt-pill:hover,
+.coach-modes button.active {
+  color: #e9ddff;
+  border-color: rgba(167, 139, 250, 0.5);
+  background: rgba(124, 58, 237, 0.19);
+}
+
+.profile-stats > div,
+.summary-card,
+.exercise-row,
+.history-row,
+.weekly-chart,
+.progress-metrics > div,
+.profile-preference,
+.daily-reminder-card,
+.recovery-indicator,
+.recovery-dashboard,
+.difficulty-trend,
+.next-session-prediction,
+.challenge-start-card,
+.score-panel {
+  border-color: rgba(184, 173, 191, 0.14);
+  background: #2a2230;
+}
+
+.profile-stats strong,
+.progress-metrics strong,
+.progress-empty strong,
+.profile-preference strong,
+.daily-reminder-card strong,
+.recovery-indicator strong,
+.recovery-dashboard strong,
+.difficulty-trend strong,
+.next-session-prediction strong {
+  color: #f8f5f2;
+}
+
+.avatar-circle,
+.mini-badge,
+.status-pill {
+  color: #211321;
+  background: #ff8a65;
+}
+
+.workout-meta span,
+.recovery-banner {
+  color: #e7d9ff;
+  border-color: rgba(167, 139, 250, 0.23);
+  background: rgba(124, 58, 237, 0.16);
+}
+
+.recovery-banner strong,
+.recovery-banner span {
+  color: #e7d9ff;
+}
+
+.progress-track span {
+  background: linear-gradient(90deg, #7c3aed, #ff8a65);
+}
+
+.score-ring {
+  background:
+    radial-gradient(circle closest-side, #211a27 78%, transparent 81% 99%, #211a27 100%),
+    conic-gradient(#a78bfa var(--score-value), rgba(184, 173, 191, 0.16) 0);
+  box-shadow: none;
+}
+
+.score-ring strong,
+.score-breakdown > strong,
+.progress-empty strong {
+  color: #d8c8ff;
+}
+
+.journey-day.completed,
+.journey-day.recovery,
+.journey-day.is-today {
+  border-color: rgba(255, 138, 101, 0.45);
+  background: rgba(255, 107, 95, 0.12);
+}
+
+.journey-day.completed small,
+.journey-day.recovery small,
+.journey-day.is-today small {
+  color: #ffab91;
+}
+
+.status.error {
+  color: #ffc1bd;
+  border-color: rgba(255, 107, 95, 0.28);
+  background: rgba(255, 107, 95, 0.1);
+}
+
+.status.success {
+  color: #a7f3d0;
+  border-color: rgba(110, 231, 183, 0.25);
+  background: rgba(110, 231, 183, 0.09);
+}
+
+.profile-preference,
+.daily-reminder-card,
+.recovery-indicator,
+.score-unlock,
+.recovery-dashboard,
+.difficulty-trend,
+.next-session-prediction,
+.challenge-start-card {
+  border-color: rgba(167, 139, 250, 0.16);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.09), rgba(255, 255, 255, 0.015));
+}
+
+.profile-preference span,
+.daily-reminder-card span,
+.recovery-indicator span,
+.recovery-dashboard span,
+.difficulty-trend span,
+.next-session-prediction span {
+  color: #b8adbf;
+}
+
+.profile-preference strong,
+.daily-reminder-card strong,
+.recovery-indicator strong,
+.recovery-dashboard strong,
+.difficulty-trend strong,
+.next-session-prediction strong {
+  color: #e3d7ff;
+}
+
+.adaptive-explanation {
+  border-color: rgba(167, 139, 250, 0.2);
+  color: #d4cad8;
+  background: linear-gradient(120deg, rgba(124, 58, 237, 0.12), rgba(255, 138, 101, 0.035));
+}
+
+.adaptive-explanation > strong {
+  color: #d8c8ff;
+}
+
+.adaptive-explanation p {
+  color: #f8f5f2;
+}
+
+.adaptation-comparison > div:last-child {
+  border-color: rgba(167, 139, 250, 0.27);
+  background: linear-gradient(145deg, rgba(124, 58, 237, 0.15), rgba(255, 255, 255, 0.02));
+}
+
+.adaptation-comparison strong,
+.adaptation-comparison > div:last-child strong {
+  color: #d8c8ff;
+}
+
+.adaptation-comparison span {
+  color: #d4cad8;
+}
+
+.language-screen {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  place-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  color: #f8f5f2;
+  background:
+    radial-gradient(ellipse at 85% 12%, rgba(124, 58, 237, 0.21), transparent 35%),
+    radial-gradient(ellipse at 12% 88%, rgba(255, 107, 95, 0.08), transparent 30%),
+    #100d14;
+}
+
+.language-card {
+  display: grid;
+  width: min(100%, 480px);
+  gap: 16px;
+  padding: clamp(22px, 6vw, 36px);
+  border: 1px solid rgba(184, 173, 191, 0.16);
+  border-radius: 24px;
+}
+
+.language-card .brand-logo {
+  width: 56px;
+  height: 56px;
+}
+
+.language-card .eyebrow,
+.language-card h1,
+.language-card p {
+  margin: 0;
+}
+
+.language-card p {
+  color: #b8adbf;
+}
+
+.language-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.language-option {
+  display: grid;
+  min-width: 0;
+  min-height: 112px;
+  justify-items: start;
+  align-content: center;
+  gap: 5px;
+  padding: 16px;
+  border: 1px solid rgba(184, 173, 191, 0.18);
+  border-radius: 16px;
+  color: #f8f5f2;
+  text-align: left;
+  background: #2a2230;
+  cursor: pointer;
+}
+
+.language-option:hover,
+.language-option:focus-visible {
+  border-color: #a78bfa;
+  background: rgba(124, 58, 237, 0.18);
+}
+
+.language-option > span {
+  font-size: 1.45rem;
+}
+
+.language-option small {
+  color: #b8adbf;
+}
+
+.language-control {
+  display: inline-grid;
+  grid-template-columns: auto minmax(86px, 1fr);
+  align-items: center;
+  gap: 7px;
+  color: #b8adbf;
+  font-size: 0.8rem;
+}
+
+.language-control select {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid rgba(184, 173, 191, 0.2);
+  border-radius: 10px;
+}
+
+.locale-content {
+  display: contents;
+}
+
+:lang(ta) {
+  font-family: "Noto Sans Tamil", "Latha", "Nirmala UI", Inter, system-ui, sans-serif;
+  line-height: 1.7;
+}
+
+:lang(ta) button,
+:lang(ta) input,
+:lang(ta) select {
+  line-height: 1.55;
+}
+
+:lang(ta) .hero-copy h1 {
+  line-height: 1.28;
+  letter-spacing: 0;
+}
+
+:lang(ta) .choice-card,
+:lang(ta) .language-option,
+:lang(ta) .primary-button,
+:lang(ta) .secondary-button,
+:lang(ta) .ghost-button {
+  min-height: 48px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 680px) {
+  .header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .language-control {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+@media (max-width: 360px) {
+  .language-options {
+    grid-template-columns: 1fr;
+  }
+
+  .language-option {
+    min-height: 82px;
+  }
+
+  .header-actions .language-control span {
+    display: none;
+  }
+}
+
+#fitness-journey .body-visual-card,
+#fitness-journey .region-insight-card {
+  color: #202a2a;
+  border: 1px solid #e4ebe7;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(19, 44, 37, 0.08);
+}
+
+#fitness-journey .body-visual-card h3,
+#fitness-journey .region-insight-card h3,
+#fitness-journey .region-insight-card strong {
+  color: #202a2a;
+}
+
+#fitness-journey .body-visual-card .eyebrow,
+#fitness-journey .region-insight-card .eyebrow {
+  color: #347a69;
+  border-color: #d5ebe3;
+  background: #edf8f3;
+}
+
+#fitness-journey .journey-week-indicator {
+  color: #347a69;
+  background: #edf8f3;
+}
+
+#fitness-journey .body-visual {
+  position: relative;
+  isolation: isolate;
+  min-height: 350px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 43%, transparent 0 31%, rgba(80, 154, 130, 0.12) 31.2% 31.6%, transparent 31.8% 43%, rgba(80, 154, 130, 0.1) 43.2% 43.6%, transparent 43.8%),
+    radial-gradient(ellipse at 50% 48%, #e9f6f0 0, #f6faf7 48%, #fbfcfa 78%);
+}
+
+#fitness-journey .body-visual::before {
+  position: absolute;
+  z-index: -1;
+  inset: 7% 14%;
+  border: 1px solid rgba(76, 144, 122, 0.15);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+#fitness-journey .body-visual svg {
+  position: relative;
+  z-index: 1;
+}
+
+#fitness-journey .body-head {
+  fill: #d9ad8f;
+  stroke: #bd8d6e;
+}
+
+#fitness-journey .body-shape {
+  fill: #354141;
+  stroke: #526361;
+  transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+#fitness-journey .body-visual.intensity-1 .body-shape,
+#fitness-journey .body-visual.intensity-2 .body-shape,
+#fitness-journey .body-visual.intensity-3 .body-shape,
+#fitness-journey .body-visual.intensity-4 .body-shape {
+  fill: #354141;
+}
+
+#fitness-journey .body-visual .body-shape.selected {
+  fill: #93d7be;
+  stroke: #4a9b7d;
+  filter: none;
+  animation: none;
+}
+
+#fitness-journey .body-visual .body-shape.high-activity {
+  fill: #f1a46f;
+  stroke: #d6814c;
+}
+
+#fitness-journey .body-visual .body-arms,
+#fitness-journey .body-visual .body-legs {
+  fill: none;
+  stroke: #354141;
+}
+
+#fitness-journey .body-visual .body-arms.selected,
+#fitness-journey .body-visual .body-legs.selected {
+  fill: none;
+  stroke: #58aa89;
+}
+
+#fitness-journey .body-visual .body-arms.high-activity,
+#fitness-journey .body-visual .body-legs.high-activity {
+  stroke: #d6814c;
+}
+
+#fitness-journey .body-outline {
+  stroke: #71817c;
+}
+
+#fitness-journey .body-labels button {
+  color: #4f625c;
+  border-color: #e1e9e5;
+  background: #fff;
+  font-weight: 650;
+}
+
+#fitness-journey .body-labels button:hover,
+#fitness-journey .body-labels button:focus-visible {
+  border-color: #8dcbb1;
+  outline-color: #347a69;
+}
+
+#fitness-journey .body-labels button.selected,
+#fitness-journey .body-focus-options button.selected {
+  color: #173a30;
+  border-color: #8bcdb1;
+  background: #dff3e9;
+}
+
+#fitness-journey .body-focus-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+#fitness-journey .body-focus-options button {
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 10px;
+  color: #435650;
+  border: 1px solid #e1e9e5;
+  border-radius: 12px;
+  background: #f8faf8;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+#fitness-journey .body-focus-options button:hover,
+#fitness-journey .body-focus-options button:focus-visible {
+  border-color: #8dcbb1;
+  outline-color: #347a69;
+  transform: translateY(-1px);
+}
+
+#fitness-journey .body-activity {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid #e6eeea;
+  border-radius: 16px;
+  background: #fbfcfb;
+}
+
+#fitness-journey .body-activity-heading {
+  display: grid;
+  gap: 3px;
+}
+
+#fitness-journey .body-activity-heading strong {
+  color: #202a2a;
+  font-size: 1rem;
+}
+
+#fitness-journey .body-activity-heading span,
+#fitness-journey .body-activity-empty {
+  color: #75827d;
+  font-size: 0.8rem;
+}
+
+#fitness-journey .body-activity-bars {
+  display: grid;
+  gap: 11px;
+}
+
+#fitness-journey .body-activity-row {
+  display: grid;
+  grid-template-columns: 76px minmax(36px, 1fr) 68px;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+#fitness-journey .body-activity-label {
+  color: #40524c;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+#fitness-journey .body-activity-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e9efec;
+}
+
+#fitness-journey .body-activity-fill {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: #66b895;
+  transition: width 0.35s ease;
+}
+
+#fitness-journey .body-activity-track.is-high .body-activity-fill {
+  background: #ec9a65;
+}
+
+#fitness-journey .body-activity-value {
+  color: #75827d;
+  font-size: 0.76rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+#fitness-journey .body-activity-empty {
+  margin: 0;
+}
+
+#fitness-journey .visual-disclaimer,
+#fitness-journey .region-insight-card p,
+#fitness-journey .region-stats span,
+#fitness-journey .region-recent span {
+  color: #687873;
+}
+
+#fitness-journey .region-stats div {
+  background: #f4f8f6;
+}
+
+#fitness-journey .region-stats strong {
+  color: #276d58;
+}
+
+#fitness-journey .region-recent,
+#fitness-journey .region-next-step {
+  padding-top: 14px;
+  border-top: 1px solid #edf1ef;
+}
+
+#fitness-journey .region-recent > strong,
+#fitness-journey .region-next-step > strong {
+  color: #347a69;
+}
+
+@media (max-width: 680px) {
+  #fitness-journey .body-focus-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #fitness-journey .body-activity-row {
+    grid-template-columns: 64px minmax(28px, 1fr) 64px;
+    gap: 8px;
+  }
+}
+
 .player-mode-tabs button {
   min-height: 42px;
   padding: 8px 18px;
@@ -3859,6 +4609,460 @@ body {
 
 @media (max-width: 680px) {
   .voice-fab {
+    display: none;
+  }
+}
+
+/* Keep the selected palette authoritative over legacy theme rules above. */
+:root {
+  color-scheme: dark;
+  color: #f8f5f2;
+  background: #100d14;
+  --fitlife-accent: #ff6b5f;
+  --fitlife-accent-dark: #e95c53;
+  --fitlife-ink: #f8f5f2;
+  --fitlife-muted: #b8adbf;
+  --fitlife-line: rgba(184, 173, 191, 0.16);
+  --fitlife-surface: #211a27;
+}
+
+body {
+  color: #f8f5f2;
+  background:
+    radial-gradient(ellipse at 8% 0%, rgba(124, 58, 237, 0.15), transparent 34%),
+    radial-gradient(ellipse at 95% 12%, rgba(255, 107, 95, 0.06), transparent 28%),
+    #100d14;
+}
+
+.app-shell,
+.dashboard-shell {
+  color: #f8f5f2;
+  background: transparent;
+}
+
+.brand-name,
+.hero-copy h1,
+.hero-copy h2,
+.hero-copy p,
+.nav-links a,
+.dashboard-nav a,
+.glass-card,
+.glass-card h3,
+.glass-card h4,
+.section-heading h3,
+.section-heading h4,
+.onboarding-modal,
+.auth-card,
+.language-card {
+  color: #f8f5f2;
+}
+
+.hero-copy h1 {
+  background: linear-gradient(110deg, #f8f5f2 15%, #a78bfa 62%, #ff8a65 100%);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-copy p,
+.glass-card p,
+.muted-copy,
+.profile-header span,
+.profile-stats span,
+.exercise-row small,
+.history-row span,
+.section-heading > span,
+.profile-preference span,
+.daily-reminder-card span,
+.recovery-indicator span,
+.recovery-dashboard span,
+.difficulty-trend span,
+.next-session-prediction span,
+.mini-copy p {
+  color: #b8adbf;
+}
+
+.eyebrow {
+  color: #c4b5fd;
+  border-color: rgba(167, 139, 250, 0.29);
+  background: rgba(124, 58, 237, 0.13);
+}
+
+.dashboard-nav,
+.glass-card,
+.auth-card,
+.onboarding-modal,
+.history-detail-modal,
+.player-modal,
+.chat-card,
+.workout-card {
+  border-color: rgba(184, 173, 191, 0.15);
+  background-color: #211a27;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-nav {
+  background: rgba(33, 26, 39, 0.94);
+}
+
+.dashboard-nav a:hover,
+.dashboard-nav a:focus-visible {
+  color: #ff8a65;
+  background: rgba(124, 58, 237, 0.15);
+}
+
+.primary-button {
+  color: #1b111a;
+  border-color: #ff8a65;
+  background: linear-gradient(135deg, #ff8a65, #ff6b5f);
+  box-shadow: 0 9px 22px rgba(255, 107, 95, 0.16);
+}
+
+.secondary-button,
+.ghost-button {
+  color: #f8f5f2;
+  border-color: rgba(184, 173, 191, 0.22);
+  background: #2a2230;
+}
+
+.secondary-button:hover,
+.ghost-button:hover {
+  border-color: rgba(167, 139, 250, 0.55);
+  background: #352940;
+}
+
+.choice-card,
+.equipment-options button,
+.workout-preference-options button {
+  color: #f8f5f2;
+  border-color: rgba(184, 173, 191, 0.18);
+  background: #2a2230;
+}
+
+.choice-card.selected,
+.equipment-options button.selected,
+.workout-preference-options button.selected {
+  color: #f8f5f2;
+  border-color: #a78bfa;
+  background: rgba(124, 58, 237, 0.2);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.1);
+}
+
+.auth-form label,
+.reminder-period-field,
+.equipment-picker legend,
+.workout-preference-picker legend {
+  color: #d4cad8;
+}
+
+.auth-form input,
+.chat-form input,
+.reminder-period-field select,
+.reminder-period-field input,
+.language-control select {
+  color: #f8f5f2;
+  border-color: rgba(184, 173, 191, 0.2);
+  background: #17131c;
+}
+
+.chat-window,
+.chat-message.assistant,
+.profile-stats > div,
+.summary-card,
+.exercise-row,
+.history-row,
+.progress-metrics > div,
+.profile-preference,
+.daily-reminder-card,
+.recovery-indicator,
+.recovery-dashboard,
+.difficulty-trend,
+.next-session-prediction,
+.challenge-start-card,
+.score-panel,
+.form-guidance > div,
+.replacement-options,
+.replacement-options > button,
+.practice-counter {
+  border-color: rgba(184, 173, 191, 0.15);
+  background: #2a2230;
+}
+
+.chat-window {
+  background: #17131c;
+}
+
+.chat-message.assistant,
+.replacement-options > button,
+.player-modal {
+  color: #f8f5f2;
+}
+
+.chat-message.user {
+  color: #fff;
+  border-color: #7c3aed;
+  background: #6d32d5;
+}
+
+.prompt-pill,
+.coach-modes button,
+.player-mode-tabs button {
+  color: #d4cad8;
+  border-color: rgba(184, 173, 191, 0.18);
+  background: #2a2230;
+}
+
+.prompt-pill:hover,
+.coach-modes button.active,
+.player-mode-tabs button.active {
+  color: #e9ddff;
+  border-color: rgba(167, 139, 250, 0.55);
+  background: rgba(124, 58, 237, 0.2);
+}
+
+.avatar-circle,
+.mini-badge,
+.status-pill {
+  color: #211321;
+  background: #ff8a65;
+}
+
+.workout-meta span,
+.recovery-banner,
+.adaptive-explanation,
+.next-session-prediction,
+.duration-adjustment {
+  color: #e7d9ff;
+  border-color: rgba(167, 139, 250, 0.23);
+  background: rgba(124, 58, 237, 0.12);
+}
+
+.recovery-banner strong,
+.recovery-banner span,
+.adaptive-explanation > strong,
+.adaptation-comparison strong,
+.adaptation-comparison > div:last-child strong,
+.form-guidance strong,
+.replacement-options > strong,
+.practice-counter > div strong {
+  color: #d8c8ff;
+}
+
+.adaptive-explanation p,
+.profile-stats strong,
+.progress-metrics strong,
+.profile-preference strong,
+.daily-reminder-card strong,
+.recovery-indicator strong,
+.recovery-dashboard strong,
+.difficulty-trend strong,
+.next-session-prediction strong {
+  color: #f8f5f2;
+}
+
+.progress-track span {
+  background: linear-gradient(90deg, #7c3aed, #ff8a65);
+}
+
+.score-ring {
+  background:
+    radial-gradient(circle closest-side, #211a27 78%, transparent 81% 99%, #211a27 100%),
+    conic-gradient(#a78bfa var(--score-value), rgba(184, 173, 191, 0.16) 0);
+}
+
+.journey-day.completed,
+.journey-day.recovery,
+.journey-day.is-today {
+  border-color: rgba(255, 138, 101, 0.45);
+  background: rgba(255, 107, 95, 0.12);
+}
+
+.player-timer-ring {
+  background:
+    radial-gradient(circle closest-side, #211a27 82%, transparent 84% 99%, #211a27 100%),
+    conic-gradient(#a78bfa var(--timer-progress), rgba(184, 173, 191, 0.18) 0);
+}
+
+.player-stat-copy,
+.player-instructions,
+.player-voice-controls > span,
+.voice-transcript,
+.voice-memory-note,
+.duration-confirmation p,
+.journey-day-modal > p,
+.challenge-start-card p {
+  color: #b8adbf;
+}
+
+.player-stat-copy strong,
+.player-timer-ring .player-timer {
+  color: #f8f5f2;
+}
+
+.journey-day.rest {
+  color: #a7f3d0;
+  border-color: rgba(110, 231, 183, 0.26);
+  background: rgba(110, 231, 183, 0.08);
+}
+
+.journey-day.missed {
+  color: #ffab91;
+  border-color: rgba(255, 138, 101, 0.28);
+  background: rgba(255, 138, 101, 0.08);
+}
+
+.status.error {
+  color: #ffc1bd;
+  border-color: rgba(255, 107, 95, 0.28);
+  background: rgba(255, 107, 95, 0.1);
+}
+
+.status.success {
+  color: #a7f3d0;
+  border-color: rgba(110, 231, 183, 0.25);
+  background: rgba(110, 231, 183, 0.09);
+}
+
+.language-screen {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  place-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  color: #f8f5f2;
+  background:
+    radial-gradient(ellipse at 85% 12%, rgba(124, 58, 237, 0.21), transparent 35%),
+    radial-gradient(ellipse at 12% 88%, rgba(255, 107, 95, 0.08), transparent 30%),
+    #100d14;
+}
+
+.language-card {
+  display: grid;
+  width: min(100%, 480px);
+  gap: 16px;
+  padding: clamp(22px, 6vw, 36px);
+  border: 1px solid rgba(184, 173, 191, 0.16);
+  border-radius: 24px;
+}
+
+.language-card .brand-logo {
+  width: 56px;
+  height: 56px;
+}
+
+.language-card .eyebrow,
+.language-card h1,
+.language-card p {
+  margin: 0;
+}
+
+.language-card p {
+  color: #b8adbf;
+}
+
+.language-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.language-option {
+  display: grid;
+  min-width: 0;
+  min-height: 112px;
+  justify-items: start;
+  align-content: center;
+  gap: 5px;
+  padding: 16px;
+  border: 1px solid rgba(184, 173, 191, 0.18);
+  border-radius: 16px;
+  color: #f8f5f2;
+  text-align: left;
+  background: #2a2230;
+  cursor: pointer;
+}
+
+.language-option:hover,
+.language-option:focus-visible {
+  border-color: #a78bfa;
+  background: rgba(124, 58, 237, 0.18);
+}
+
+.language-option > span {
+  font-size: 1.45rem;
+}
+
+.language-option small {
+  color: #b8adbf;
+}
+
+.language-control {
+  display: inline-grid;
+  grid-template-columns: auto minmax(86px, 1fr);
+  align-items: center;
+  gap: 7px;
+  color: #b8adbf;
+  font-size: 0.8rem;
+}
+
+.language-control select {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid rgba(184, 173, 191, 0.2);
+  border-radius: 10px;
+}
+
+.locale-content {
+  display: contents;
+}
+
+:lang(ta) {
+  font-family: "Noto Sans Tamil", "Latha", "Nirmala UI", Inter, system-ui, sans-serif;
+  line-height: 1.7;
+}
+
+:lang(ta) button,
+:lang(ta) input,
+:lang(ta) select {
+  line-height: 1.55;
+}
+
+:lang(ta) .hero-copy h1 {
+  line-height: 1.28;
+  letter-spacing: 0;
+}
+
+:lang(ta) .choice-card,
+:lang(ta) .language-option,
+:lang(ta) .primary-button,
+:lang(ta) .secondary-button,
+:lang(ta) .ghost-button {
+  min-height: 48px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 680px) {
+  .header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .language-control {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+@media (max-width: 360px) {
+  .language-options {
+    grid-template-columns: 1fr;
+  }
+
+  .language-option {
+    min-height: 82px;
+  }
+
+  .header-actions .language-control span {
     display: none;
   }
 }

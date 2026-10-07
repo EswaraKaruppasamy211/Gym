@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
 import fitlifeLogo from './assets/fitlife-logo.png'
 import { ExerciseAnimation } from './ExerciseAnimation'
+import { Localized } from './Localized'
+import { translate, type Language } from './i18n'
+import { ApiError, apiRequest, type StoredUserData } from './api'
 import './App.css'
 
 type Goal =
@@ -40,6 +43,8 @@ type Exercise = {
 
 type Difficulty = 'Easy' | 'Moderate' | 'Hard'
 type JourneyRegion = 'Chest' | 'Arms' | 'Core' | 'Legs' | 'Back'
+type BodyFocus = 'Full Body' | 'Upper Body' | 'Lower Body' | 'Core'
+type BodyActivityArea = 'Chest' | 'Shoulders' | 'Arms' | 'Core' | 'Legs'
 type VoiceStatus = 'idle' | 'listening' | 'thinking' | 'responding' | 'error'
 type VoiceAction =
   | 'GENERATE_WORKOUT'
@@ -137,6 +142,8 @@ type UserRecord = {
   history: HistoryItem[]
 }
 
+type RemoteUserData = StoredUserData<Partial<UserProfile>, Workout | null, ChatMessage, HistoryItem>
+
 const GOALS: Goal[] = [
   'Weight Loss',
   'Muscle Building',
@@ -153,6 +160,7 @@ const EQUIPMENT_OPTIONS: Equipment[] = ['NO EQUIPMENT', 'BASIC EQUIPMENT', 'FULL
 const REMINDER_PERIODS: ReminderPeriod[] = ['Morning', 'Afternoon', 'Evening', 'Custom']
 const USERS_KEY = 'fitflow-users'
 const SESSION_KEY = 'fitflow-session'
+const LANGUAGE_KEY = 'flexora_language'
 
 const defaultProfile = (email = '', password = ''): UserProfile => ({
   name: '',
@@ -172,8 +180,20 @@ const defaultProfile = (email = '', password = ''): UserProfile => ({
   challengeDayNotes: {},
 })
 
+const profileForPersistence = (profile: UserProfile): Omit<UserProfile, 'password'> => {
+  const { password, ...savedProfile } = profile
+  void password
+  return savedProfile
+}
+
 const makeWorkoutId = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+
+const mergeById = <T extends { id: string }>(remote: T[], local: T[]) => {
+  const merged = new Map(remote.map((item) => [item.id, item]))
+  for (const item of local) merged.set(item.id, item)
+  return [...merged.values()]
+}
 
 const getExerciseSeconds = (exercise?: Exercise) => {
   if (!exercise) return 45
@@ -626,6 +646,27 @@ const generateProfilePlan = (
   profile.workoutPreference ?? 'Balanced',
 )
 
+const getLocalizedWorkoutExplanation = (workout: Workout, profile: UserProfile, language: Language | null) => {
+  if (language !== 'ta') return workout.coachMessage ?? workout.rationale
+  const rationale: Record<Goal, string> = {
+    'Weight Loss': 'இந்தத் திட்டம் முழு உடல் இயக்கம் மற்றும் கட்டுப்படுத்தப்பட்ட கார்டியோவை இணைத்து, மூட்டுகளுக்கு அதிக சுமை தராமல் உங்கள் எடை குறைப்பு இலக்கை ஆதரிக்கிறது.',
+    'Muscle Building': 'உங்கள் நேரத்திற்கும் மீட்பு தேவைக்கும் ஏற்ற கட்டுப்படுத்தப்பட்ட பயிற்சி அளவைப் பயன்படுத்தி தசை வலிமையை உருவாக்க இந்தத் திட்டம் வடிவமைக்கப்பட்டுள்ளது.',
+    'General Fitness': 'வலிமை, நெகிழ்வு மற்றும் இதயத் துடிப்பு உயர்வைச் சமநிலைப்படுத்தி, முழு உடல் உடற்தகுதியை ஆதரிக்கும் வகையில் இந்தப் பயிற்சி அமைக்கப்பட்டுள்ளது.',
+    Strength: 'முக்கிய இயக்க முறைகளை மையமாகக் கொண்டு, குறுகிய நேரத்தில் வலிமை மற்றும் தசை ஒருங்கிணைப்பை வளர்க்க இந்தப் பயிற்சி அமைக்கப்பட்டுள்ளது.',
+    Flexibility: 'இறுக்கமான தசைகளுக்கு அதிக அழுத்தம் தராமல், இயக்க வரம்பையும் நெகிழ்வையும் மேம்படுத்த இந்தப் பயிற்சி அமைக்கப்பட்டுள்ளது.',
+    Endurance: 'அதிகப்படியான சுமையின்றி சகிப்புத்தன்மையை வளர்க்க, நிலையான தீவிரத்தில் மீண்டும் செய்யும் இடைவெளிப் பயிற்சிகளை இது பயன்படுத்துகிறது.',
+  }
+  const equipment = profile.equipment === 'NO EQUIPMENT'
+    ? 'உடல் எடைப் பயிற்சிகளுக்கு ஏற்ற இயக்கங்கள் தேர்ந்தெடுக்கப்பட்டுள்ளன.'
+    : profile.equipment === 'BASIC EQUIPMENT'
+      ? 'கிடைக்கும் அடிப்படை உபகரணங்கள் தேவையான இடங்களில் பயன்படுத்தப்படுகின்றன.'
+      : 'உடற்பயிற்சி கூட உபகரணங்கள் தேவையான இடங்களில் பயன்படுத்தப்படுகின்றன.'
+  const impact = profile.experience === 'Beginner' || /low[\s-]impact/i.test(profile.preferences)
+    ? 'அதிக தாக்கமுள்ள இயக்கங்களுக்கு பதிலாக குறைந்த தாக்கமுள்ள மாற்றுகள் பயன்படுத்தப்பட்டுள்ளன.'
+    : ''
+  return `${rationale[workout.goal]} ${workout.duration} நிமிட நேரம், ${translate(workout.experience, 'ta')} அனுபவ நிலை மற்றும் ${translate(profile.workoutPreference ?? 'Balanced', 'ta')} விருப்பத்துக்கு ஏற்ப இந்தப் பயிற்சி அமைக்கப்பட்டுள்ளது. ${equipment} ${impact}`
+}
+
 const normalizeWorkoutEquipment = (workout: Workout, equipment: Equipment): Workout => {
   if (equipment === 'FULL EQUIPMENT') return workout
   const adapt = (exercise: Exercise): Exercise => {
@@ -656,10 +697,12 @@ const normalizeWorkoutEquipment = (workout: Workout, equipment: Equipment): Work
   }
 }
 
-const initialAssistantMessage = (profile: UserProfile) => ({
+const initialAssistantMessage = (profile: UserProfile, language: Language = 'en') => ({
   id: makeWorkoutId(),
   role: 'assistant' as const,
-  text: `Hi ${profile.name || 'there'} — I’m Flexora. I can build a ${profile.goal.toLowerCase()} session that fits your ${profile.duration}-minute window and ${profile.experience.toLowerCase()} level.`,
+  text: language === 'ta'
+    ? `வணக்கம் ${profile.name || 'நண்பரே'} — நான் Flexora. உங்கள் ${translate(profile.goal, 'ta')} இலக்கிற்கும் ${profile.duration} நிமிட நேரத்திற்கும் ${translate(profile.experience, 'ta')} நிலைக்கு ஏற்ற பயிற்சியை உருவாக்குவேன்.`
+    : `Hi ${profile.name || 'there'} — I’m Flexora. I can build a ${profile.goal.toLowerCase()} session that fits your ${profile.duration}-minute window and ${profile.experience.toLowerCase()} level.`,
 })
 
 const readUsers = (): UserRecord[] => {
@@ -699,17 +742,30 @@ const writeUserData = (email: string, data: Partial<UserRecord>) => {
   return writeStoredValue(`fitflow-user-${email}`, data)
 }
 
-const readSession = () => {
+const readSession = (): { email: string | null; token: string | null } => {
   try {
     const raw = localStorage.getItem(SESSION_KEY)
-    return raw ? (JSON.parse(raw) as { email: string | null }) : { email: null }
+    if (!raw) return { email: null, token: null }
+    const saved = JSON.parse(raw) as { email?: unknown; token?: unknown }
+    return {
+      email: typeof saved.email === 'string' ? saved.email : null,
+      token: typeof saved.token === 'string' ? saved.token : null,
+    }
   } catch {
-    return { email: null }
+    return { email: null, token: null }
   }
 }
 
-const writeSession = (email: string | null) => {
-  return writeStoredValue(SESSION_KEY, { email })
+const writeSession = (email: string | null, token: string | null = null) => {
+  return writeStoredValue(SESSION_KEY, { email, ...(token ? { token } : {}) })
+}
+
+const readSavedLanguage = (): Language => {
+  try {
+    return localStorage.getItem(LANGUAGE_KEY) === 'ta' ? 'ta' : 'en'
+  } catch {
+    return 'en'
+  }
 }
 
 const formatDate = (date: string) =>
@@ -735,6 +791,58 @@ const parseDurationFromText = (text: string): number | null => {
   return value && value >= 5 && value <= 120 ? value : null
 }
 
+const normalizeCoachMessage = (message: string, language: Language | null) => {
+  if (language !== 'ta') return message
+  const duration = message.match(/(\d+)\s*நிமிட(?:ம்|ங்கள்)?/)
+  if (duration) return `I only have ${duration[1]} minutes today. ${message}`
+  if (/சோர்வு|சோர்வாக|களைப்பு|வலிக்க|கடினமாக உள்ளது|மீட்பு|ஓய்வு/.test(message)) {
+    return `I am tired today. Please give me a recovery workout. ${message}`
+  }
+  if (/எளிதாக்கு|எளிதாக|குறைந்த தீவிரம்/.test(message)) return `Make it easier. ${message}`
+  if (/கடினமாக்கு|சவாலாக/.test(message)) return `Make it harder. ${message}`
+  if (/வயிறு|மையப்பகுதி/.test(message)) return `Focus on abs. ${message}`
+  if (/முழு உடல்/.test(message)) return `I want a full body workout. ${message}`
+  if (/நேற்று|வரலாறு|முன்பு செய்த/.test(message)) return `What did I do yesterday? ${message}`
+  if (/முன்னேற்றம்|செயல்திறன்/.test(message)) return `Show my progress. ${message}`
+  if (/மாற்று|வேறு பயிற்சி/.test(message)) return `Change my workout. ${message}`
+  if (/தொடங்கு|உடற்பயிற்சி உருவாக்கு/.test(message)) return `Create today's workout. ${message}`
+  return message
+}
+
+const getTamilLocalCoachReply = (
+  message: string,
+  workout: Workout | null,
+  profile: UserProfile,
+  history: HistoryItem[],
+) => {
+  const text = message.toLowerCase()
+  if (/history|yesterday|past workouts/.test(text)) {
+    const latest = [...history].filter((item) => item.completed).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+    return latest
+      ? `உங்கள் சமீபத்திய முடித்த பயிற்சி ${translate(latest.title, 'ta')} — ${latest.duration} நிமிடங்கள், ${translate(latest.goal, 'ta')}. (${formatDate(latest.date)})`
+      : 'உங்கள் வரலாற்றில் முடித்த உடற்பயிற்சி எதுவும் இல்லை. நீங்கள் ஒரு பயிற்சியை முடித்த பிறகு அதை இங்கே பார்க்கலாம்.'
+  }
+  if (/recovery|tired|sore|hard|difficult/.test(text)) {
+    return 'இன்று மீட்பு முறையைத் தேர்ந்தெடுத்துள்ளேன்: குறைந்த தாக்க இயக்கம், உடல் நெகிழ்வு மற்றும் மெதுவான நீட்டிப்புகள். வசதியான அளவில் மட்டும் செய்யுங்கள்; வலி ஏற்பட்டால் நிறுத்துங்கள்.'
+  }
+  if (/easier/.test(text)) {
+    return 'உங்கள் அடுத்த பயிற்சியை எளிதாக்கி, இயக்கங்களின் எண்ணிக்கையையும் தீவிரத்தையும் குறைத்துள்ளேன்.'
+  }
+  if (/harder/.test(text)) {
+    return 'உங்கள் கருத்தின் அடிப்படையில் அடுத்த பயிற்சியை ஒரு படி சவாலாக மாற்றியுள்ளேன்; கட்டுப்பாட்டுடன் செய்யுங்கள்.'
+  }
+  if (/progress|stats|this week/.test(text)) {
+    const summary = getHistorySummary(history)
+    return summary.completed.length
+      ? `இதுவரை ${summary.completed.length} உடற்பயிற்சிகளை முடித்துள்ளீர்கள்; மொத்தம் ${summary.totalMinutes} நிமிடங்கள். இந்த வாரம் ${summary.thisWeek} பயிற்சிகள் பதிவு செய்யப்பட்டுள்ளன.`
+      : 'உங்கள் முன்னேற்றத்தைப் பகிர, முதலில் ஒரு உடற்பயிற்சியை முடித்து சேமிக்கவும். உங்கள் உண்மையான வரலாற்றிலிருந்து மட்டுமே கணக்கிடுவேன்.'
+  }
+  if (workout) {
+    return `உங்கள் ${translate(profile.goal, 'ta')} இலக்கு, ${workout.duration} நிமிட நேரம் மற்றும் ${translate(profile.experience, 'ta')} அனுபவ நிலைக்கு ஏற்ற உடற்பயிற்சி தயாராக உள்ளது. உபகரணங்கள்: ${translate(profile.equipment ?? 'NO EQUIPMENT', 'ta')}.`
+  }
+  return `உங்கள் ${translate(profile.goal, 'ta')} இலக்கிற்கும் ${profile.duration} நிமிட நேரத்திற்கும் ஏற்ற பயிற்சியை உருவாக்குகிறேன். உங்கள் அனுபவ நிலை: ${translate(profile.experience, 'ta')}.`
+}
+
 const isWorkout = (value: unknown): value is Workout => {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Partial<Workout>
@@ -757,6 +865,7 @@ const isWorkout = (value: unknown): value is Workout => {
 
 type CoachRequest = {
   message: string
+  language: Language
   requestedDuration: number
   profile: {
     name: string
@@ -912,6 +1021,14 @@ const getFourWeekActivity = (history: HistoryItem[]) => {
 }
 
 const JOURNEY_REGIONS: JourneyRegion[] = ['Chest', 'Arms', 'Core', 'Legs', 'Back']
+const BODY_FOCUS_OPTIONS: BodyFocus[] = ['Full Body', 'Upper Body', 'Lower Body', 'Core']
+const BODY_FOCUS_REGIONS: Record<BodyFocus, JourneyRegion[]> = {
+  'Full Body': JOURNEY_REGIONS,
+  'Upper Body': ['Chest', 'Arms', 'Back'],
+  'Lower Body': ['Legs'],
+  Core: ['Core'],
+}
+const BODY_ACTIVITY_AREAS: BodyActivityArea[] = ['Chest', 'Shoulders', 'Arms', 'Core', 'Legs']
 
 const getExerciseRegion = (text: string): JourneyRegion | null => {
   const value = text.toLowerCase()
@@ -934,19 +1051,16 @@ const getRegionActivity = (history: HistoryItem[], region: JourneyRegion) => {
     const matches = exercises.filter((exercise) => getExerciseRegion(`${exercise.name} ${exercise.target ?? ''}`) === region)
     return matches.length ? [{ item, count: matches.length }] : []
   })
-  const count = matching.reduce((sum, entry) => sum + entry.count, 0)
   const workoutCount = matching.length
-  const consistency = workoutCount >= 4 ? 'Consistent' : workoutCount >= 2 ? 'Building' : workoutCount ? 'Getting started' : 'No activity recorded'
-  const recommendation = workoutCount >= 4
-    ? 'Keep recovery balanced and rotate focus areas.'
-    : workoutCount
-      ? 'Add a short session for this area when it fits your plan.'
-      : 'Try including a movement for this area in your next balanced workout.'
   return {
-    count,
+    count: matching.reduce((sum, entry) => sum + entry.count, 0),
     workoutCount,
-    consistency,
-    recommendation,
+    consistency: workoutCount >= 4 ? 'Consistent' : workoutCount >= 2 ? 'Building' : workoutCount ? 'Getting started' : 'No activity recorded',
+    recommendation: workoutCount >= 4
+      ? 'Keep recovery balanced and rotate focus areas.'
+      : workoutCount
+        ? 'Add a short session for this area when it fits your plan.'
+        : 'Try including a movement for this area in your next balanced workout.',
     recent: matching.slice(0, 3).map(({ item }, index) => ({
       key: `${item.id}-${index}`,
       label: `${item.title} · ${formatDate(item.date)}`,
@@ -954,21 +1068,83 @@ const getRegionActivity = (history: HistoryItem[], region: JourneyRegion) => {
   }
 }
 
+const getBodyFocusActivity = (history: HistoryItem[], focus: BodyFocus) => {
+  const regions = BODY_FOCUS_REGIONS[focus]
+  const recent = history
+    .filter((item) => item.completed)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  const matching = recent.flatMap((item) => {
+    const exercises = item.workout
+      ? [...item.workout.warmup, ...item.workout.main, ...item.workout.cooldown]
+      : []
+    const matches = exercises.filter((exercise) => {
+      const region = getExerciseRegion(`${exercise.name} ${exercise.target ?? ''}`)
+      return region !== null && regions.includes(region)
+    })
+    return matches.length ? [{ item, count: matches.length }] : []
+  })
+  const workoutCount = matching.length
+  return {
+    count: matching.reduce((sum, entry) => sum + entry.count, 0),
+    workoutCount,
+    consistency: workoutCount >= 4 ? 'Consistent' : workoutCount >= 2 ? 'Building' : workoutCount ? 'Getting started' : 'No activity recorded',
+    recommendation: workoutCount >= 4
+      ? 'Keep recovery balanced and rotate focus areas.'
+      : workoutCount
+        ? 'Add a short session for this area when it fits your plan.'
+        : 'Try including a movement for this area in your next balanced workout.',
+    recent: matching.slice(0, 3).map(({ item }, index) => ({
+      key: `${item.id}-${index}`,
+      label: `${item.title} · ${formatDate(item.date)}`,
+    })),
+  }
+}
+
+const getBodyActivityBars = (history: HistoryItem[]) => {
+  const counts: Record<BodyActivityArea, number> = {
+    Chest: 0,
+    Shoulders: 0,
+    Arms: 0,
+    Core: 0,
+    Legs: 0,
+  }
+  for (const item of history) {
+    if (!item.completed || !item.workout) continue
+    const exercises = [...item.workout.warmup, ...item.workout.main, ...item.workout.cooldown]
+    for (const exercise of exercises) {
+      const text = `${exercise.name} ${exercise.target ?? ''}`.toLowerCase()
+      const area: BodyActivityArea | null = /chest|push.?up|bench|pec/.test(text) ? 'Chest'
+        : /shoulder|deltoid/.test(text) ? 'Shoulders'
+          : /arm|bicep|tricep|curl|row|pull.?up|band pull/.test(text) ? 'Arms'
+            : /core|abs|plank|crunch|dead bug|hollow|mountain climber/.test(text) ? 'Core'
+              : /leg|squat|lunge|step.?up|calf|hamstring|glute|hip|knee|walk|march|burpee|jump|skater|fast feet/.test(text) ? 'Legs'
+                : null
+      if (area) counts[area] += 1
+    }
+  }
+  const total = Object.values(counts).reduce((sum, count) => sum + count, 0)
+  return BODY_ACTIVITY_AREAS.map((area) => ({
+    area,
+    count: counts[area],
+    percentage: total ? Math.round(counts[area] / total * 100) : 0,
+  }))
+}
+
 const identifyVoiceAction = (transcript: string): VoiceAction => {
   const text = transcript.toLowerCase()
-  if (/recovery|sore|tired|too difficult|too hard|yesterday.*hard/.test(text)) return 'RECOVERY_MODE'
-  if (/replace|alternative|can't do this|cannot do this/.test(text)) return 'REPLACE_EXERCISE'
-  if (/form|how do i|how to do/.test(text)) return 'SHOW_FORM'
-  if (/how much time|time left|time remaining/.test(text)) return 'TIME_LEFT'
-  if (/pause/.test(text)) return 'PAUSE_WORKOUT'
-  if (/resume|continue workout/.test(text)) return 'RESUME_WORKOUT'
-  if (/skip|next exercise/.test(text)) return 'SKIP_EXERCISE'
-  if (/start workout|begin workout/.test(text)) return 'START_WORKOUT'
-  if (/history|past workouts/.test(text)) return 'SHOW_HISTORY'
-  if (/journey/.test(text)) return 'SHOW_JOURNEY'
-  if (/profile|my settings/.test(text)) return 'SHOW_PROFILE'
-  if (/progress|how am i doing|how am i progressing/.test(text)) return 'SHOW_PROGRESS'
-  if (/harder|easier|adapt|change my workout/.test(text)) return 'ADAPT_WORKOUT'
+  if (/recovery|sore|tired|too difficult|too hard|yesterday.*hard|மீட்பு|சோர்வு|சோர்வாக|களைப்பு|கடினம்/.test(text)) return 'RECOVERY_MODE'
+  if (/replace|alternative|can't do this|cannot do this|மாற்று|வேறு பயிற்சி/.test(text)) return 'REPLACE_EXERCISE'
+  if (/form|how do i|how to do|சரியான நிலை|எப்படி செய்வது/.test(text)) return 'SHOW_FORM'
+  if (/how much time|time left|time remaining|எவ்வளவு நேரம்|மீதமுள்ள நேரம்/.test(text)) return 'TIME_LEFT'
+  if (/pause|இடைநிறுத்து/.test(text)) return 'PAUSE_WORKOUT'
+  if (/resume|continue workout|தொடரு|மீண்டும் தொடங்கு/.test(text)) return 'RESUME_WORKOUT'
+  if (/skip|next exercise|தவிர்|அடுத்து/.test(text)) return 'SKIP_EXERCISE'
+  if (/start workout|begin workout|பயிற்சியைத் தொடங்கு/.test(text)) return 'START_WORKOUT'
+  if (/history|past workouts|வரலாறு|முன்பு செய்த/.test(text)) return 'SHOW_HISTORY'
+  if (/journey|பயணம்/.test(text)) return 'SHOW_JOURNEY'
+  if (/profile|my settings|சுயவிவரம்|அமைப்புகள்/.test(text)) return 'SHOW_PROFILE'
+  if (/progress|how am i doing|how am i progressing|முன்னேற்றம்/.test(text)) return 'SHOW_PROGRESS'
+  if (/harder|easier|adapt|change my workout|எளிதாக்கு|கடினமாக்கு|மாற்று/.test(text)) return 'ADAPT_WORKOUT'
   return 'GENERATE_WORKOUT'
 }
 
@@ -1120,7 +1296,17 @@ const generateCoachReply = (
 
 function App() {
   const storedSession = useMemo(() => readSession(), [])
+  const [language, setLanguage] = useState<Language | null>(() => {
+    try {
+      const savedLanguage = localStorage.getItem(LANGUAGE_KEY)
+      return savedLanguage === 'ta' || savedLanguage === 'en' ? savedLanguage : null
+    } catch {
+      return null
+    }
+  })
   const [sessionUserEmail, setSessionUserEmail] = useState<string | null>(storedSession.email)
+  const [apiToken, setApiToken] = useState<string | null>(storedSession.token)
+  const [remoteReady, setRemoteReady] = useState(!storedSession.token)
   const [users, setUsers] = useState<UserRecord[]>(() => readUsers())
   const [profile, setProfile] = useState<UserProfile>(() => {
     const sessionEmail = storedSession.email
@@ -1161,6 +1347,8 @@ function App() {
   const [voiceTranscript, setVoiceTranscript] = useState('')
   const [voiceError, setVoiceError] = useState('')
   const [selectedRegion, setSelectedRegion] = useState<JourneyRegion>('Legs')
+  const [selectedBodyFocus, setSelectedBodyFocus] = useState<BodyFocus>('Full Body')
+  const [showingBodyFocus, setShowingBodyFocus] = useState(true)
   const [toast, setToast] = useState('')
   const [selectedHistory, setSelectedHistory] = useState<HistoryItem | null>(null)
   const [selectedJourneyDay, setSelectedJourneyDay] = useState<JourneyDay | null>(null)
@@ -1181,16 +1369,118 @@ function App() {
   const [workoutComplete, setWorkoutComplete] = useState(false)
   const chatRef = useRef<HTMLDivElement | null>(null)
   const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null)
+  const persistenceQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const persistenceWarningRef = useRef(false)
+  const loginPasswordRef = useRef('')
+  const skipRemoteHydrationRef = useRef(false)
+
+  useEffect(() => {
+    if (language) document.documentElement.lang = language
+  }, [language])
+
+  useEffect(() => {
+    if (!apiToken || !sessionUserEmail) return
+    if (skipRemoteHydrationRef.current) {
+      skipRemoteHydrationRef.current = false
+      return
+    }
+
+    let cancelled = false
+    let retryTimeout = 0
+    const loadRemoteData = async () => {
+      try {
+        const data = await apiRequest<RemoteUserData>('/api/me/data', { token: apiToken })
+        if (cancelled) return
+        const savedData = readUserData(sessionUserEmail)
+        const savedPassword = savedData.profile?.password || loginPasswordRef.current
+        const hasRemoteProfile = Object.keys(data.profile ?? {}).length > 0
+        const savedProfile: UserProfile = {
+          ...defaultProfile(sessionUserEmail, savedPassword),
+          ...(hasRemoteProfile ? data.profile : savedData.profile),
+          email: sessionUserEmail,
+          password: savedPassword,
+        }
+        const localWorkout = savedData.workout ?? null
+        const mergedWorkout = data.workout ?? localWorkout
+        const savedWorkout = mergedWorkout
+          ? enrichWorkout(normalizeWorkoutEquipment(mergedWorkout, savedProfile.equipment ?? 'NO EQUIPMENT'))
+          : null
+        const savedMessages = mergeById(data.messages ?? [], savedData.messages ?? [])
+        if (savedMessages.length === 0) savedMessages.push(initialAssistantMessage(savedProfile, readSavedLanguage()))
+        const savedHistory = mergeById(data.history ?? [], savedData.history ?? [])
+        setProfile(savedProfile)
+        setDraftProfile(savedProfile)
+        setWorkout(savedWorkout)
+        setMessages(savedMessages)
+        setHistory(savedHistory)
+        if (!writeUserData(sessionUserEmail, {
+          profile: savedProfile,
+          workout: savedWorkout,
+          messages: savedMessages,
+          history: savedHistory,
+        })) {
+          console.error('Flexora could not update the local copy of PostgreSQL data.')
+        }
+        setRemoteReady(true)
+      } catch (error: unknown) {
+        if (cancelled) return
+        if (error instanceof ApiError && error.status === 401) {
+          console.warn('Flexora cloud session is no longer valid; continuing with browser storage.')
+          setApiToken(null)
+          setRemoteReady(true)
+          return
+        }
+        const status = error instanceof ApiError ? ` (HTTP ${error.status})` : ''
+        console.error(`Flexora could not load PostgreSQL data; the local browser copy remains available${status}.`)
+        retryTimeout = window.setTimeout(() => void loadRemoteData(), 30000)
+      }
+    }
+    void loadRemoteData()
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(retryTimeout)
+    }
+  }, [apiToken, sessionUserEmail])
+
+  const changeLanguage = (value: string) => {
+    if (value !== 'ta' && value !== 'en') return
+    setLanguage(value)
+    try {
+      localStorage.setItem(LANGUAGE_KEY, value)
+    } catch (error) {
+      console.error('Flexora could not save the selected language.', error)
+      setToast('Language changed for this visit, but could not be saved on this device.')
+    }
+  }
 
   const progress = useMemo(() => getHistorySummary(history), [history])
   const adaptiveScores = useMemo(() => getAdaptiveScores(history, progress), [history, progress])
   const weeklyActivity = useMemo(() => getFourWeekActivity(history), [history])
   const regionActivity = useMemo(() => getRegionActivity(history, selectedRegion), [history, selectedRegion])
+  const bodyFocusActivity = useMemo(() => getBodyFocusActivity(history, selectedBodyFocus), [history, selectedBodyFocus])
+  const bodyActivityBars = useMemo(() => getBodyActivityBars(history), [history])
+  const activeBodyActivity = showingBodyFocus ? bodyFocusActivity : regionActivity
+  const activeBodyLabel = showingBodyFocus ? selectedBodyFocus : selectedRegion
+  const bodyActivityPercentage = (area: BodyActivityArea) =>
+    bodyActivityBars.find((entry) => entry.area === area)?.percentage ?? 0
+  const isBodyRegionSelected = (region: JourneyRegion) =>
+    showingBodyFocus ? BODY_FOCUS_REGIONS[selectedBodyFocus].includes(region) : selectedRegion === region
   const completedHistory = useMemo(
     () => history.filter((item) => item.completed).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     [history],
   )
   const recentHardCount = completedHistory.slice(0, 3).filter((item) => item.feedback === 'Hard' || item.difficulty === 'Hard').length
+  const selectBodyRegion = (region: JourneyRegion) => {
+    setSelectedRegion(region)
+    setSelectedBodyFocus(region === 'Core' ? 'Core' : region === 'Legs' ? 'Lower Body' : 'Upper Body')
+    setShowingBodyFocus(false)
+  }
+  const selectBodyFocus = (focus: BodyFocus) => {
+    setSelectedBodyFocus(focus)
+    setSelectedRegion(focus === 'Core' ? 'Core' : focus === 'Lower Body' ? 'Legs' : focus === 'Upper Body' ? 'Chest' : 'Legs')
+    setShowingBodyFocus(true)
+  }
   const speechRecognitionAvailable = typeof window !== 'undefined' && Boolean(
     (window as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition ||
     (window as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).webkitSpeechRecognition,
@@ -1233,6 +1523,13 @@ function App() {
       : workout
         ? `Your ${workout.duration}-minute workout is ready.`
         : 'You haven’t started today’s workout yet.'
+  const tamilDailyReminderMessage = todayWorkoutComplete
+    ? 'அருமை — இன்றைய உடற்பயிற்சி முடிந்தது.'
+    : isRecoveryPlan
+      ? 'இன்று மீட்பை மையமாகக் கொண்ட பயிற்சி நாள்.'
+      : workout
+        ? `உங்கள் ${workout.duration} நிமிட உடற்பயிற்சி தயாராக உள்ளது.`
+        : 'இன்றைய உடற்பயிற்சியை இன்னும் தொடங்கவில்லை.'
   const nextWorkoutGoal = Math.max(1, Math.min(4, progress.thisWeek + 1))
 
   const finishWorkout = useCallback((completedCount = completedExerciseCount) => {
@@ -1256,8 +1553,8 @@ function App() {
       }
       return [saved, ...previous.filter((item) => item.id !== workout.id)]
     })
-    setToast('Workout completed and saved to your history.')
-  }, [completedExerciseCount, workout])
+    setToast(language === 'ta' ? 'உடற்பயிற்சி முடிந்து வரலாற்றில் சேமிக்கப்பட்டது.' : 'Workout completed and saved to your history.')
+  }, [completedExerciseCount, language, workout])
 
   const advancePlayer = useCallback(() => {
     setPlayerElapsedSeconds((elapsed) => elapsed + 1)
@@ -1288,11 +1585,40 @@ function App() {
 
   useEffect(() => {
     if (sessionUserEmail) {
-      if (!writeSession(sessionUserEmail) || !writeUserData(sessionUserEmail, { profile, workout, messages, history })) {
+      if (!writeSession(sessionUserEmail, apiToken) || !writeUserData(sessionUserEmail, { profile, workout, messages, history })) {
         console.error('Flexora could not persist this session to browser storage.')
       }
     }
-  }, [history, messages, profile, sessionUserEmail, workout])
+  }, [apiToken, history, messages, profile, sessionUserEmail, workout])
+
+  useEffect(() => {
+    if (!sessionUserEmail || !apiToken || !remoteReady) return
+    const persistedData = {
+      profile: profileForPersistence(profile),
+      workout,
+      messages,
+      history,
+    }
+    const timeout = window.setTimeout(() => {
+      persistenceQueueRef.current = persistenceQueueRef.current
+        .catch(() => undefined)
+        .then(() => apiRequest('/api/me/data', {
+          method: 'PUT',
+          token: apiToken,
+          body: persistedData,
+        }))
+        .then(() => {
+          persistenceWarningRef.current = false
+        })
+        .catch((error: unknown) => {
+          if (persistenceWarningRef.current) return
+          persistenceWarningRef.current = true
+          const status = error instanceof ApiError ? ` (HTTP ${error.status})` : ''
+          console.error(`Flexora could not synchronize data to PostgreSQL${status}; browser storage remains available.`)
+        })
+    }, 350)
+    return () => window.clearTimeout(timeout)
+  }, [apiToken, history, messages, profile, remoteReady, sessionUserEmail, workout])
 
   useEffect(() => {
     if (users.length > 0 && !writeUsers(users)) {
@@ -1388,7 +1714,7 @@ function App() {
     const updatedProfile = { ...profile, challengeStartDate: today, challengeDayNotes: {} }
     setProfile(updatedProfile)
     setDraftProfile(updatedProfile)
-    setToast('Your 30-day Flexora journey has started.')
+    setToast(language === 'ta' ? 'உங்கள் Flexora 30 நாள் பயணம் தொடங்கியது.' : 'Your 30-day Flexora journey has started.')
   }
 
   const saveJourneyDayStatus = (day: JourneyDay, status: JourneyDayStatus) => {
@@ -1397,7 +1723,9 @@ function App() {
       challengeDayNotes: { ...(current.challengeDayNotes ?? {}), [day.key]: status },
     }))
     setSelectedJourneyDay(null)
-    setToast(status === 'rest' ? 'Rest day recorded. No workout was added to your history.' : 'Day marked as missed. No workout was added to your history.')
+    setToast(language === 'ta'
+      ? status === 'rest' ? 'ஓய்வு நாள் பதிவு செய்யப்பட்டது. வரலாற்றில் உடற்பயிற்சி சேர்க்கப்படவில்லை.' : 'இந்த நாள் தவறவிட்டதாகக் குறிக்கப்பட்டது. வரலாற்றில் உடற்பயிற்சி சேர்க்கப்படவில்லை.'
+      : status === 'rest' ? 'Rest day recorded. No workout was added to your history.' : 'Day marked as missed. No workout was added to your history.')
   }
 
   const setReminderEnabled = async (enabled: boolean) => {
@@ -1476,8 +1804,10 @@ function App() {
     setWorkout(nextWorkout)
     setHistory((previous) => previous.map((item) => item.id === workout.id ? { ...item, workout: nextWorkout } : item))
     setReplacementExerciseIndex(null)
-    setReplacementNotice(`${originalExerciseName} → ${replacement.name}. Lower difficulty while keeping a similar movement pattern. Your timer and progress were preserved.`)
-    setToast('Exercise replaced. Timer and workout progress preserved.')
+    setReplacementNotice(language === 'ta'
+      ? `${translate(originalExerciseName, 'ta')} → ${translate(replacement.name, 'ta')}. ஒத்த இயக்கத்தைப் பேணியபடி சிரமம் குறைக்கப்பட்டது. நேரக் கணிப்பும் முன்னேற்றமும் மாறவில்லை.`
+      : `${originalExerciseName} → ${replacement.name}. Lower difficulty while keeping a similar movement pattern. Your timer and progress were preserved.`)
+    setToast(language === 'ta' ? 'பயிற்சி மாற்றப்பட்டது. நேரமும் முன்னேற்றமும் பாதுகாக்கப்பட்டன.' : 'Exercise replaced. Timer and workout progress preserved.')
   }
 
   const adjustRemainingWorkout = (duration: 5 | 10 | 20 | 30) => {
@@ -1508,7 +1838,9 @@ function App() {
     setWorkout(enrichWorkout(nextWorkout))
     setHistory((previous) => previous.map((item) => item.id === workout.id ? { ...item, duration, workout: nextWorkout } : item))
     setPendingDuration(null)
-    setToast(`Remaining workout adapted to ${duration} minutes. Your current exercise and timer stayed in place.`)
+    setToast(language === 'ta'
+      ? `மீதமுள்ள பயிற்சி ${duration} நிமிடங்களுக்கு மாற்றப்பட்டது. தற்போதைய பயிற்சியும் நேரக் கணிப்பும் மாறவில்லை.`
+      : `Remaining workout adapted to ${duration} minutes. Your current exercise and timer stayed in place.`)
   }
 
   const submitWorkoutFeedback = (feedback: 'Easy' | 'Good' | 'Hard') => {
@@ -1523,10 +1855,14 @@ function App() {
       const adapted = generateProfilePlan(profile, workout.duration, level, workout.goal)
       setWorkout({ ...adapted, difficulty: shouldProgress ? level === 'Advanced' ? 'Hard' : 'Moderate' : workout.difficulty ?? 'Moderate' })
       setWorkoutComplete(false)
-      setFeedbackPrediction(shouldProgress ? 'Your last sessions felt manageable. The next workout progresses one step while keeping your duration.' : 'Saved as manageable. Flexora will look for another easy session before progressing difficulty.')
-      setMessages((previous) => [...previous, { id: makeWorkoutId(), role: 'assistant', text: shouldProgress
-        ? `Your recent sessions felt manageable, so I’ve progressed the next session one step while keeping your ${workout.duration}-minute duration.`
-        : `Glad that felt manageable. I’ve saved your feedback and will look for another easy session before progressing difficulty.` }])
+      setFeedbackPrediction(language === 'ta'
+        ? shouldProgress ? 'சமீபத்திய பயிற்சிகள் வசதியாக இருந்ததால், அதே நேர வரம்பில் அடுத்த பயிற்சியை ஒரு படி முன்னேற்றியுள்ளேன்.' : 'உங்கள் கருத்து சேமிக்கப்பட்டது. சிரமத்தை உயர்த்துவதற்கு முன் இன்னொரு எளிய பயிற்சியைப் பார்ப்பேன்.'
+        : shouldProgress ? 'Your last sessions felt manageable. The next workout progresses one step while keeping your duration.' : 'Saved as manageable. Flexora will look for another easy session before progressing difficulty.')
+      setMessages((previous) => [...previous, { id: makeWorkoutId(), role: 'assistant', text: language === 'ta'
+        ? shouldProgress ? `சமீபத்திய பயிற்சிகள் வசதியாக இருந்ததால், ${workout.duration} நிமிட நேரத்தைப் பேணியபடி அடுத்த பயிற்சியை ஒரு படி முன்னேற்றியுள்ளேன்.` : 'இது வசதியாக இருந்ததில் மகிழ்ச்சி. உங்கள் கருத்தைச் சேமித்துள்ளேன்; சிரமத்தை உயர்த்துவதற்கு முன் இன்னொரு எளிய பயிற்சியைப் பார்ப்பேன்.'
+        : shouldProgress
+          ? `Your recent sessions felt manageable, so I’ve progressed the next session one step while keeping your ${workout.duration}-minute duration.`
+          : 'Glad that felt manageable. I’ve saved your feedback and will look for another easy session before progressing difficulty.' }])
     } else if (feedback === 'Hard') {
       const adapted = generateProfilePlan(profile, workout.duration, 'Beginner', workout.goal)
       const easierMain = adapted.main.slice(0, Math.max(1, adapted.main.length - 1)).map((exercise) => ({
@@ -1538,18 +1874,30 @@ function App() {
         ...adapted,
         difficulty: 'Easy',
         main: easierMain,
-        rationale: 'Flexora changed your next workout because your previous session was too difficult. This version uses fewer movements, lower volume, and beginner-friendly pacing.',
-        coachMessage: 'Your feedback mattered: the next session has fewer movements and lower volume while still fitting your selected time.',
+        rationale: language === 'ta'
+          ? 'முந்தைய பயிற்சி கடினமாக இருந்ததால் அடுத்த பயிற்சியை எளிதாக்கியுள்ளேன். இதில் குறைவான இயக்கங்கள், குறைந்த பயிற்சி அளவு மற்றும் தொடக்கநிலைக்கு ஏற்ற வேகம் உள்ளன.'
+          : 'Flexora changed your next workout because your previous session was too difficult. This version uses fewer movements, lower volume, and beginner-friendly pacing.',
+        coachMessage: language === 'ta'
+          ? 'உங்கள் கருத்தின் அடிப்படையில் அடுத்த பயிற்சியில் இயக்கங்களும் பயிற்சி அளவும் குறைக்கப்பட்டுள்ளன; தேர்ந்தெடுத்த நேரத்திற்குள் இது பொருந்தும்.'
+          : 'Your feedback mattered: the next session has fewer movements and lower volume while still fitting your selected time.',
       }))
       setWorkout(lighterWorkout)
       setWorkoutComplete(false)
-      setFeedbackPrediction('Flexora changed your next workout because your previous session was too difficult. It now has fewer movements, lower volume, and easier pacing.')
-      setMessages((previous) => [...previous, { id: makeWorkoutId(), role: 'assistant', text: 'Thanks for the feedback. I’ve reduced intensity for your next session and can suggest lower-impact alternatives. Stop any movement that causes pain.' }])
+      setFeedbackPrediction(language === 'ta'
+        ? 'முந்தைய பயிற்சி கடினமாக இருந்ததால் அடுத்த பயிற்சியை மாற்றியுள்ளேன். இப்போது குறைவான இயக்கங்கள், குறைந்த பயிற்சி அளவு மற்றும் எளிய வேகம் பயன்படுத்தப்படுகிறது.'
+        : 'Flexora changed your next workout because your previous session was too difficult. It now has fewer movements, lower volume, and easier pacing.')
+      setMessages((previous) => [...previous, { id: makeWorkoutId(), role: 'assistant', text: language === 'ta'
+        ? 'உங்கள் கருத்துக்கு நன்றி. அடுத்த பயிற்சியின் தீவிரத்தைக் குறைத்து, எளிய மாற்றுகளையும் பரிந்துரைக்கிறேன். வலி தரும் எந்த இயக்கத்தையும் நிறுத்துங்கள்.'
+        : 'Thanks for the feedback. I’ve reduced intensity for your next session and can suggest lower-impact alternatives. Stop any movement that causes pain.' }])
     } else {
-      setFeedbackPrediction('Next session: maintain a similar level and adapt again from your next feedback.')
-      setMessages((previous) => [...previous, { id: makeWorkoutId(), role: 'assistant', text: 'Great — I’ll keep this intensity for your next session.' }])
+      setFeedbackPrediction(language === 'ta'
+        ? 'அடுத்த பயிற்சியில் இதே அளவு தீவிரத்தைப் பேணி, உங்கள் அடுத்த கருத்தின் அடிப்படையில் மீண்டும் மாற்றுவேன்.'
+        : 'Next session: maintain a similar level and adapt again from your next feedback.')
+      setMessages((previous) => [...previous, { id: makeWorkoutId(), role: 'assistant', text: language === 'ta'
+        ? 'அருமை — அடுத்த பயிற்சியிலும் இதே தீவிரத்தைப் பேணுவேன்.'
+        : 'Great — I’ll keep this intensity for your next session.' }])
     }
-    setToast('Feedback saved. Your next plan has been adjusted.')
+    setToast(language === 'ta' ? 'கருத்து சேமிக்கப்பட்டது. அடுத்த திட்டம் மாற்றப்பட்டது.' : 'Feedback saved. Your next plan has been adjusted.')
   }
 
   const sendCoachMessage = async (value: string, fromVoice = false) => {
@@ -1560,13 +1908,16 @@ function App() {
     if (fromVoice) setVoiceStatus('thinking')
 
     const endpoint = import.meta.env.VITE_FLEXORA_AI_ENDPOINT ?? import.meta.env.VITE_FITFLOW_AI_ENDPOINT
-    const requestedDuration = parseDurationFromText(value) ?? profile.duration
+    const localRequest = normalizeCoachMessage(value, language)
+    const tamilDuration = language === 'ta' ? value.match(/(\d+)\s*நிமிட(?:ம்|ங்கள்)?/) : null
+    const requestedDuration = parseDurationFromText(value) ?? (tamilDuration ? Number(tamilDuration[1]) : null) ?? profile.duration
     let response: { text: string; adjustedWorkout?: Workout | null }
 
     try {
       if (!endpoint) throw new Error('No AI endpoint configured')
       const result = await requestFitFlowAi(endpoint, {
         message: value,
+        language: language ?? 'en',
         requestedDuration,
         profile: {
           name: profile.name,
@@ -1595,13 +1946,15 @@ function App() {
         : undefined
       response = {
         text: result.text,
-        adjustedWorkout: generated ?? generateCoachReply(value, workout, profile, history).adjustedWorkout,
+        adjustedWorkout: generated ?? generateCoachReply(localRequest, workout, profile, history).adjustedWorkout,
       }
       setAiUnavailable(false)
     } catch {
-      response = generateCoachReply(value, workout, profile, history)
+      response = generateCoachReply(localRequest, workout, profile, history)
       setAiUnavailable(true)
-      response.text = `Flexora AI is temporarily unavailable. Your local adaptive workout engine is still available. ${response.text}`
+      response.text = language === 'ta'
+        ? `Flexora AI தற்காலிகமாக கிடைக்கவில்லை; உள்ளூர் தகவமைவு உடற்பயிற்சி இயந்திரம் பயன்படுத்தப்படுகிறது. ${getTamilLocalCoachReply(localRequest, workout, profile, history)}`
+        : `Flexora AI is temporarily unavailable. Your local adaptive workout engine is still available. ${response.text}`
     } finally {
       setTyping(false)
     }
@@ -1700,7 +2053,7 @@ function App() {
     try {
       const recognition = new Recognition()
       speechRecognitionRef.current = recognition
-      recognition.lang = navigator.language || 'en-US'
+      recognition.lang = language === 'ta' ? 'ta-IN' : 'en-US'
       recognition.interimResults = false
       recognition.onresult = (event) => {
         const transcript = event.results[0]?.[0]?.transcript ?? ''
@@ -1745,6 +2098,7 @@ function App() {
     }
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = language === 'ta' ? 'ta-IN' : 'en-US'
     utterance.onend = () => setVoiceStatus((status) => status === 'responding' ? 'idle' : status)
     window.speechSynthesis.speak(utterance)
     setVoiceError('')
@@ -1766,7 +2120,7 @@ function App() {
     window.setTimeout(() => document.getElementById('coach')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0)
   }
 
-  const handleAuthSubmit = (event: FormEvent) => {
+  const handleAuthSubmit = async (event: FormEvent) => {
     event.preventDefault()
     const normalizedEmail = authForm.email.trim().toLowerCase()
 
@@ -1777,28 +2131,96 @@ function App() {
 
     if (authMode === 'login') {
       const existingUser = users.find((user) => user.email === normalizedEmail)
+      const localPasswordMatches = Boolean(existingUser && existingUser.password === authForm.password)
+      let remoteToken: string | null = null
 
-      if (!existingUser) {
-        setAuthError('No account matches that email. Create an account to continue.')
+      try {
+        const result = await apiRequest<{ token: string }>('/api/auth/login', {
+          method: 'POST',
+          body: { email: normalizedEmail, password: authForm.password },
+        })
+        remoteToken = result.token
+      } catch (loginError) {
+        if (loginError instanceof ApiError && loginError.status === 401 && localPasswordMatches) {
+          const localData = readUserData(normalizedEmail)
+          const migrationData = {
+            profile: profileForPersistence({
+              ...defaultProfile(normalizedEmail, authForm.password),
+              ...existingUser?.profile,
+              ...localData.profile,
+              email: normalizedEmail,
+              password: authForm.password,
+            }),
+            workout: localData.workout ?? existingUser?.workout ?? null,
+            messages: localData.messages ?? existingUser?.messages ?? [],
+            history: localData.history ?? existingUser?.history ?? [],
+          }
+          try {
+            const result = await apiRequest<{ token: string }>('/api/auth/migrate', {
+              method: 'POST',
+              body: { email: normalizedEmail, password: authForm.password, data: migrationData },
+            })
+            remoteToken = result.token
+          } catch (migrationError) {
+            const status = migrationError instanceof ApiError ? migrationError.status : 0
+            if (status !== 401) {
+              console.warn(`Flexora could not migrate the existing account to PostgreSQL (HTTP ${status}); continuing with browser storage.`)
+            }
+          }
+        } else if (!(loginError instanceof ApiError && loginError.status === 401)) {
+          const status = loginError instanceof ApiError ? loginError.status : 0
+          console.warn(`Flexora could not authenticate with PostgreSQL (HTTP ${status}); checking browser storage.`)
+        }
+      }
+
+      if (!remoteToken && !localPasswordMatches) {
+        if (existingUser) {
+          setAuthError('That password does not match the current account.')
+        } else {
+          setAuthError('No account matches that email. Create an account to continue.')
+        }
         return
       }
 
-      if (existingUser.password !== authForm.password) {
-        setAuthError('That password does not match the current account.')
-        return
+      loginPasswordRef.current = authForm.password
+      skipRemoteHydrationRef.current = false
+      if (remoteToken) {
+        setRemoteReady(false)
+        if (remoteToken) skipRemoteHydrationRef.current = true
+        setApiToken(remoteToken)
+      } else {
+        setApiToken(null)
+        setRemoteReady(true)
       }
-
-      const savedData = readUserData(normalizedEmail)
-      const savedProfile = { ...defaultProfile(normalizedEmail, existingUser.password), ...savedData.profile }
+      const localData = readUserData(normalizedEmail)
+      const savedProfile = {
+        ...defaultProfile(normalizedEmail, authForm.password),
+        ...localData.profile,
+        email: normalizedEmail,
+        password: authForm.password,
+      }
       if (challengeIntent && !savedProfile.challengeStartDate) savedProfile.challengeStartDate = getTodayKey()
+      if (!existingUser) {
+        const newLocalUser: UserRecord = {
+          email: normalizedEmail,
+          password: authForm.password,
+          profile: savedProfile,
+          workout: localData.workout ?? null,
+          messages: localData.messages ?? [],
+          history: localData.history ?? [],
+        }
+        setUsers((previous) => previous.some((user) => user.email === normalizedEmail)
+          ? previous
+          : [...previous, newLocalUser])
+      }
       setSessionUserEmail(normalizedEmail)
       setProfile(savedProfile)
       setDraftProfile(savedProfile)
-      setWorkout(savedData.workout
-        ? enrichWorkout(normalizeWorkoutEquipment(savedData.workout, savedProfile.equipment ?? 'NO EQUIPMENT'))
+      setWorkout(localData.workout
+        ? enrichWorkout(normalizeWorkoutEquipment(localData.workout, savedProfile.equipment ?? 'NO EQUIPMENT'))
         : generateProfilePlan(savedProfile))
-      setMessages(savedData.messages && savedData.messages.length > 0 ? savedData.messages : [initialAssistantMessage(savedProfile)])
-      setHistory(savedData.history ?? [])
+      setMessages(localData.messages && localData.messages.length > 0 ? localData.messages : [initialAssistantMessage(savedProfile, language ?? 'en')])
+      setHistory(localData.history ?? [])
       setAuthError('')
       setAuthNotice('')
       setChallengeIntent(false)
@@ -1817,10 +2239,33 @@ function App() {
       password: authForm.password,
       profile: { ...defaultProfile(normalizedEmail, authForm.password), email: normalizedEmail, password: authForm.password },
       workout: null,
-      messages: [initialAssistantMessage({ ...defaultProfile(normalizedEmail, authForm.password), email: normalizedEmail, password: authForm.password })],
+      messages: [initialAssistantMessage({ ...defaultProfile(normalizedEmail, authForm.password), email: normalizedEmail, password: authForm.password }, language ?? 'en')],
       history: [],
     }
+    loginPasswordRef.current = authForm.password
 
+    let remoteToken: string | null = null
+    try {
+      const result = await apiRequest<{ token: string }>('/api/auth/register', {
+        method: 'POST',
+        body: { email: normalizedEmail, password: authForm.password, profile: profileForPersistence(nextUser.profile) },
+      })
+      remoteToken = result.token
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        setAuthError('This email is already registered. Please log in instead.')
+        return
+      }
+      if (error instanceof ApiError && error.status === 400) {
+        setAuthError(error.message)
+        return
+      }
+      const status = error instanceof ApiError ? error.status : 0
+      console.warn(`Flexora could not register with PostgreSQL (HTTP ${status}); continuing with browser storage.`)
+    }
+
+    setApiToken(remoteToken)
+    setRemoteReady(true)
     setUsers((previous) => [...previous, nextUser])
     setSessionUserEmail(normalizedEmail)
     setProfile(nextUser.profile)
@@ -1846,7 +2291,18 @@ function App() {
   }
 
   const handleLogout = () => {
+    if (apiToken) {
+      void apiRequest('/api/auth/logout', { method: 'POST', token: apiToken })
+        .catch((error: unknown) => {
+          const status = error instanceof ApiError ? error.status : 0
+          console.warn(`Flexora could not revoke the PostgreSQL session (HTTP ${status}); the local session will still be cleared.`)
+        })
+    }
     setSessionUserEmail(null)
+    setApiToken(null)
+    setRemoteReady(true)
+    loginPasswordRef.current = ''
+    skipRemoteHydrationRef.current = false
     if (!writeSession(null)) {
       console.error('Flexora could not clear the saved session from browser storage.')
     }
@@ -1879,11 +2335,13 @@ function App() {
     const planMessage: ChatMessage = {
       id: makeWorkoutId(),
       role: 'assistant',
-      text: `Your plan is ready. I built a ${finalizedProfile.goal.toLowerCase()} session for ${finalizedProfile.duration} minutes at a ${finalizedProfile.experience.toLowerCase()} level.`,
+      text: language === 'ta'
+        ? `உங்கள் திட்டம் தயாராக உள்ளது. ${finalizedProfile.duration} நிமிடங்களில் ${translate(finalizedProfile.goal, 'ta')} இலக்கிற்கும் ${translate(finalizedProfile.experience, 'ta')} அனுபவ நிலைக்கும் ஏற்ற பயிற்சியை உருவாக்கியுள்ளேன்.`
+        : `Your plan is ready. I built a ${finalizedProfile.goal.toLowerCase()} session for ${finalizedProfile.duration} minutes at a ${finalizedProfile.experience.toLowerCase()} level.`,
     }
     setMessages((previous) => profile.name.trim()
       ? [...previous, planMessage]
-      : [initialAssistantMessage(finalizedProfile), planMessage])
+      : [initialAssistantMessage(finalizedProfile, language ?? 'en'), planMessage])
 
     const userIndex = users.findIndex((user) => user.email === finalizedProfile.email)
     if (userIndex >= 0) {
@@ -1986,8 +2444,34 @@ function App() {
 
   const currentStep = onboardingSteps[onboardingStep]
 
+  if (!language) {
+    return (
+      <main className="language-screen" lang="en">
+        <section className="language-card" aria-labelledby="language-title">
+          <img className="brand-logo" src={fitlifeLogo} alt="Flexora" />
+          <span className="eyebrow">FLEXORA</span>
+          <h1 id="language-title">Choose Your Language</h1>
+          <p>Select your preferred language. You can change it later without affecting your account or progress.</p>
+          <div className="language-options">
+            <button type="button" className="language-option" onClick={() => changeLanguage('ta')}>
+              <span aria-hidden="true">🇮🇳</span>
+              <strong>தமிழ்</strong>
+              <small>Tamil</small>
+            </button>
+            <button type="button" className="language-option" onClick={() => changeLanguage('en')}>
+              <span aria-hidden="true">🇬🇧</span>
+              <strong>English</strong>
+              <small>English</small>
+            </button>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
   if (!sessionUserEmail) {
     return (
+      <Localized language={language}>
       <div className="app-shell">
         <header className="topbar topbar-home">
           <div className="brand-wrap">
@@ -1996,6 +2480,13 @@ function App() {
               <div className="brand-name">Flexora</div>
             </div>
           </div>
+          <label className="language-control">
+            <span>Language</span>
+            <select aria-label="Language" value={language} onChange={(event) => changeLanguage(event.target.value)}>
+              <option value="ta">தமிழ்</option>
+              <option value="en">English</option>
+            </select>
+          </label>
           <nav className="nav-links">
             <a href="#features">How it adapts</a>
             <a href="#preview">Workout</a>
@@ -2121,10 +2612,12 @@ function App() {
           </div>
         </div>
       </div>
+      </Localized>
     )
   }
 
   return (
+    <Localized language={language}>
     <div className="app-shell dashboard-shell">
       <header className="topbar dashboard-topbar" id="home">
         <div className="brand-wrap">
@@ -2134,6 +2627,13 @@ function App() {
           </div>
         </div>
         <div className="header-actions">
+          <label className="language-control">
+            <span>Language</span>
+            <select aria-label="Language" value={language} onChange={(event) => changeLanguage(event.target.value)}>
+              <option value="ta">தமிழ்</option>
+              <option value="en">English</option>
+            </select>
+          </label>
           <span className="status-pill">Adaptive engine active</span>
           <button type="button" className="ghost-button" onClick={handleLogout}>Logout</button>
         </div>
@@ -2233,28 +2733,41 @@ function App() {
 
           <div className="glass-card brief-card">
             <span className="eyebrow">Flexora Insight · Today</span>
-            <h3>Good to see you, {profile.name || 'athlete'} 👋</h3>
+            <h3>{language === 'ta'
+              ? `உங்களைப் பார்ப்பதில் மகிழ்ச்சி, ${profile.name || 'நண்பரே'} 👋`
+              : `Good to see you, ${profile.name || 'athlete'} 👋`}</h3>
             <div className="daily-reminder-card" role="status">
-              <strong>{dailyReminderMessage}</strong>
+              <strong>{language === 'ta' ? tamilDailyReminderMessage : dailyReminderMessage}</strong>
               {currentChallengeDay
-                ? <span>Day {currentChallengeDay} / 30 · challenge activity is recorded from saved workouts only.</span>
-                : <span>Your 30-day journey hasn’t started.</span>}
+                ? <span>{language === 'ta'
+                  ? `நாள் ${currentChallengeDay} / 30 · சேமித்த பயிற்சிகள் மட்டுமே சவாலில் கணக்கிடப்படும்.`
+                  : `Day ${currentChallengeDay} / 30 · challenge activity is recorded from saved workouts only.`}</span>
+                : <span>{language === 'ta' ? 'உங்கள் 30 நாள் பயணம் இன்னும் தொடங்கவில்லை.' : 'Your 30-day journey hasn’t started.'}</span>}
               {!profile.challengeStartDate && <button type="button" className="secondary-button" onClick={startChallenge}>Start challenge</button>}
             </div>
             <p>
-              {progress.thisWeek
-                ? `You completed ${progress.thisWeek} workout${progress.thisWeek === 1 ? '' : 's'} this week.`
-                : 'Your week is ready for a fresh start.'}
-              {' '}Today I recommend a {profile.duration}-minute {workout?.difficulty?.toLowerCase() ?? 'moderate'} {profile.goal.toLowerCase()} session.
+              {language === 'ta'
+                ? `${progress.thisWeek
+                  ? `இந்த வாரம் ${progress.thisWeek} உடற்பயிற்சிகளை முடித்துள்ளீர்கள்.`
+                  : 'புதிய தொடக்கத்திற்கான வாரம் தயாராக உள்ளது.'} இன்று உங்கள் ${profile.duration} நிமிட ${translate(workout?.difficulty ?? 'Moderate', 'ta')} ${translate(profile.goal, 'ta')} பயிற்சியை பரிந்துரைக்கிறேன்.`
+                : `${progress.thisWeek
+                  ? `You completed ${progress.thisWeek} workout${progress.thisWeek === 1 ? '' : 's'} this week.`
+                  : 'Your week is ready for a fresh start.'} Today I recommend a ${profile.duration}-minute ${workout?.difficulty?.toLowerCase() ?? 'moderate'} ${profile.goal.toLowerCase()} session.`}
             </p>
             <div className="brief-metrics">
               <span><strong>{profile.duration} min</strong> recommended</span>
-              <span><strong>{progress.streak} day{progress.streak === 1 ? '' : 's'}</strong> streak</span>
+              <span><strong>{language === 'ta'
+                ? `${progress.streak} நாள்`
+                : `${progress.streak} day${progress.streak === 1 ? '' : 's'}`}</strong> {language === 'ta' ? 'தொடர்ச்சி' : 'streak'}</span>
             </div>
             <p className="muted-copy">
               {progress.completed[0]
-                ? `Latest: ${progress.completed[0].title} · ${formatDate(progress.completed[0].date)}`
-                : 'Complete a workout to start building your activity memory.'}
+                ? language === 'ta'
+                  ? `சமீபத்தியது: ${translate(progress.completed[0].title, 'ta')} · ${formatDate(progress.completed[0].date)}`
+                  : `Latest: ${progress.completed[0].title} · ${formatDate(progress.completed[0].date)}`
+                : language === 'ta'
+                  ? 'உங்கள் செயல்பாட்டு வரலாற்றை உருவாக்க ஒரு உடற்பயிற்சியை முடிக்கவும்.'
+                  : 'Complete a workout to start building your activity memory.'}
             </p>
             <div className="recovery-indicator">
               <div><span>Flexora recovery indicator</span><strong>{adaptiveScores.recovery ? adaptiveScores.recoveryLabel : 'Not enough activity'}</strong></div>
@@ -2274,7 +2787,7 @@ function App() {
               history.map((entry) => (
                 <button key={entry.id} type="button" className="history-row history-button" onClick={() => setSelectedHistory(entry)}>
                   <div>
-                    <strong>{entry.title}</strong>
+                    <strong>{language === 'ta' ? translate(entry.title, 'ta') : entry.title}</strong>
                     <span>{formatDate(entry.date)} · {entry.duration} min · {entry.goal}</span>
                   </div>
                   <span className={`mini-badge ${entry.completed ? 'done' : 'pending'}`}>
@@ -2352,7 +2865,9 @@ function App() {
             <div className="section-heading">
               <div>
                 <span className="eyebrow">Today’s plan</span>
-                <h3>{workout?.title || 'Build your workout'}</h3>
+                <h3>{workout
+                  ? language === 'ta' ? `${translate(workout.goal, 'ta')} பயிற்சி` : workout.title
+                  : 'Build your workout'}</h3>
               </div>
               <button type="button" className="primary-button" onClick={() => startNewWorkout()}>
                 Generate workout
@@ -2374,7 +2889,7 @@ function App() {
                   <span className={workout.difficulty === 'Hard' ? 'active' : ''}>Challenging</span>
                 </div>
                 {feedbackPrediction && <div className="next-session-prediction" role="status"><strong>Next session</strong><span>{feedbackPrediction}</span></div>}
-                <p className="rationale">{workout.coachMessage ?? workout.rationale}</p>
+                <p className="rationale">{getLocalizedWorkoutExplanation(workout, profile, language)}</p>
                 <div className="adaptive-explanation" aria-label="Why Flexora adapted this workout">
                   <strong>Why Flexora chose this workout</strong>
                   <p className="personalization-proof">Your workout was personalized based on your goal, time, and experience.</p>
@@ -2383,11 +2898,13 @@ function App() {
                   <span>✓ Experience: {workout.experience}</span>
                   <span>✓ Preferred type: {profile.workoutPreference ?? 'Balanced'}</span>
                   <span>✓ Equipment: {profile.equipment ?? 'NO EQUIPMENT'}</span>
-                  <span>✓ Recent activity: {completedHistory.length} completed session{completedHistory.length === 1 ? '' : 's'}</span>
+                  <span>{language === 'ta'
+                    ? `✓ சமீபத்திய செயல்பாடு: ${completedHistory.length} முடித்த பயிற்சிகள்`
+                    : `✓ Recent activity: ${completedHistory.length} completed session${completedHistory.length === 1 ? '' : 's'}`}</span>
                   <span>✓ Recent feedback: {progress.completed[0]?.feedback ?? 'No feedback saved yet'}</span>
                   <span>✓ Recovery signal: {recentHardCount >= 2 || progress.completed[0]?.feedback === 'Hard' ? 'A lighter session is prioritized' : 'No recent high-effort pattern recorded'}</span>
                   {profile.preferences && <span>✓ Preferences: {profile.preferences}</span>}
-                  <p>{workout.rationale}</p>
+                  <p>{getLocalizedWorkoutExplanation(workout, profile, language)}</p>
                 </div>
 
                 {workout.title.toLowerCase().includes('recovery') && (
@@ -2401,9 +2918,11 @@ function App() {
                   <div className="completion-card">
                     <span className="eyebrow">Workout complete 🎉</span>
                     <h4>Nice work, {profile.name || 'athlete'}.</h4>
-                    <p>{workout.duration} min · {completedExerciseCount} {completedExerciseCount === 1 ? 'exercise' : 'exercises'} completed · {workout.difficulty ?? 'Moderate'} effort</p>
+                    <p>{language === 'ta'
+                      ? `${workout.duration} நிமிடங்கள் · ${completedExerciseCount} பயிற்சிகள் முடிந்தது · ${translate(workout.difficulty ?? 'Moderate', 'ta')} முயற்சி`
+                      : `${workout.duration} min · ${completedExerciseCount} ${completedExerciseCount === 1 ? 'exercise' : 'exercises'} completed · ${workout.difficulty ?? 'Moderate'} effort`}</p>
                     <span className="saved-confirmation">✓ Saved to workout history</span>
-                    <p className="muted-copy">{workout.rationale}</p>
+                    <p className="muted-copy">{getLocalizedWorkoutExplanation(workout, profile, language)}</p>
                     <strong>How did this feel?</strong>
                     <div className="feedback-options">
                       <button type="button" className="secondary-button" onClick={() => submitWorkoutFeedback('Easy')}>😊 Too Easy</button>
@@ -2462,7 +2981,7 @@ function App() {
                 <span className="eyebrow">Flexora adapts with you</span>
                 <h3>Your personal fitness agent</h3>
               </div>
-              <button type="button" className="ghost-button" onClick={() => setMessages([initialAssistantMessage(profile)])}>
+              <button type="button" className="ghost-button" onClick={() => setMessages([initialAssistantMessage(profile, language ?? 'en')])}>
                 Clear chat
               </button>
             </div>
@@ -2587,43 +3106,63 @@ function App() {
             <div className="journey-layout">
               <div className="glass-card body-visual-card">
                 <div className="section-heading">
-                  <div><span className="eyebrow">Consistency-based visual representation</span><h3>Training progress visualization</h3></div>
+                  <div><span className="eyebrow">Human Visualization</span><h3>Human Visualization</h3></div>
                   <span className="journey-week-indicator">4-week activity</span>
                 </div>
                 <div className={`body-visual intensity-${Math.min(4, Math.floor(completedHistory.length / 2))}`}>
-                  <svg viewBox="0 0 240 390" role="img" aria-label={`Selectable training focus body illustration. Selected area: ${selectedRegion}. No body composition measurement.`}>
+                  <svg viewBox="0 0 240 390" role="img" aria-label="Human visualization based on saved workout activity">
                     <circle className="body-head" cx="120" cy="44" r="25" />
-                    <path className={`body-shape body-chest ${selectedRegion === 'Chest' ? 'selected' : ''}`} d="M88 91 Q120 75 152 91 L160 143 Q145 160 120 160 Q95 160 80 143 Z" onClick={() => setSelectedRegion('Chest')} />
-                    <path className={`body-shape body-core ${selectedRegion === 'Core' ? 'selected' : ''}`} d="M83 148 Q120 162 157 148 L150 222 Q120 232 90 222 Z" onClick={() => setSelectedRegion('Core')} />
-                    <path className={`body-shape body-arms ${selectedRegion === 'Arms' ? 'selected' : ''}`} d="M84 96 L62 109 L38 185 L51 191 L81 137 L95 115 M156 96 L178 109 L202 185 L189 191 L159 137 L145 115" onClick={() => setSelectedRegion('Arms')} />
-                    <path className={`body-shape body-legs ${selectedRegion === 'Legs' ? 'selected' : ''}`} d="M95 220 L88 286 L79 358 L96 362 L119 296 L125 230 M145 220 L152 286 L161 358 L144 362 L121 296 L115 230" onClick={() => setSelectedRegion('Legs')} />
-                    <path className={`body-shape body-back ${selectedRegion === 'Back' ? 'selected' : ''}`} d="M91 100 Q120 83 149 100 L144 139 Q120 149 96 139 Z" onClick={() => setSelectedRegion('Back')} />
+                    <path className={`body-shape body-chest ${isBodyRegionSelected('Chest') ? 'selected' : ''} ${bodyActivityPercentage('Chest') >= 60 ? 'high-activity' : ''}`} d="M88 91 Q120 75 152 91 L160 143 Q145 160 120 160 Q95 160 80 143 Z" onClick={() => selectBodyRegion('Chest')} />
+                    <path className={`body-shape body-core ${isBodyRegionSelected('Core') ? 'selected' : ''} ${bodyActivityPercentage('Core') >= 60 ? 'high-activity' : ''}`} d="M83 148 Q120 162 157 148 L150 222 Q120 232 90 222 Z" onClick={() => selectBodyRegion('Core')} />
+                    <path className={`body-shape body-arms ${isBodyRegionSelected('Arms') ? 'selected' : ''} ${Math.max(bodyActivityPercentage('Arms'), bodyActivityPercentage('Shoulders')) >= 60 ? 'high-activity' : ''}`} d="M84 96 L62 109 L38 185 L51 191 L81 137 L95 115 M156 96 L178 109 L202 185 L189 191 L159 137 L145 115" onClick={() => selectBodyRegion('Arms')} />
+                    <path className={`body-shape body-legs ${isBodyRegionSelected('Legs') ? 'selected' : ''} ${bodyActivityPercentage('Legs') >= 60 ? 'high-activity' : ''}`} d="M95 220 L88 286 L79 358 L96 362 L119 296 L125 230 M145 220 L152 286 L161 358 L144 362 L121 296 L115 230" onClick={() => selectBodyRegion('Legs')} />
+                    <path className={`body-shape body-back ${isBodyRegionSelected('Back') ? 'selected' : ''}`} d="M91 100 Q120 83 149 100 L144 139 Q120 149 96 139 Z" onClick={() => selectBodyRegion('Back')} />
                     <path className="body-outline" d="M95 91 Q120 78 145 91 L161 107 L185 180 L197 190 M145 91 L167 133 L151 222 L160 286 L151 360 M95 91 L79 107 L55 180 L43 190 M95 91 L73 133 L89 222 L80 286 L89 360 M89 222 Q120 235 151 222" />
                   </svg>
                   <div className="body-labels">
                     {JOURNEY_REGIONS.map((region) => (
-                      <button type="button" key={region} className={selectedRegion === region ? 'selected' : ''} aria-pressed={selectedRegion === region} onClick={() => setSelectedRegion(region)}>{region}</button>
+                      <button type="button" key={region} className={isBodyRegionSelected(region) ? 'selected' : ''} aria-pressed={isBodyRegionSelected(region)} onClick={() => selectBodyRegion(region)}>{region}</button>
                     ))}
                   </div>
+                </div>
+                <div className="body-focus-options" role="group" aria-label="Workout focus">
+                  {BODY_FOCUS_OPTIONS.map((focus) => (
+                    <button type="button" key={focus} className={selectedBodyFocus === focus ? 'selected' : ''} aria-pressed={selectedBodyFocus === focus} onClick={() => selectBodyFocus(focus)}>{focus}</button>
+                  ))}
+                </div>
+                <div className="body-activity">
+                  <div className="body-activity-heading"><strong>Body Activity</strong><span>Based on completed exercise history</span></div>
+                  <div className="body-activity-bars">
+                    {bodyActivityBars.map(({ area, count, percentage }) => (
+                      <div className="body-activity-row" key={area}>
+                        <span className="body-activity-label">{area}</span>
+                        <div className={`body-activity-track ${percentage >= 60 ? 'is-high' : ''}`} role="progressbar" aria-label="Recorded exercise activity" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage}>
+                          <span className="body-activity-fill" style={{ width: `${percentage}%` }} />
+                        </div>
+                        <span className="body-activity-value">{count} · {percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                  {bodyActivityBars.every(({ count }) => count === 0) && <p className="body-activity-empty">Complete and save a workout to see recorded activity here.</p>}
                 </div>
                 <p className="visual-disclaimer">Visual emphasis reflects recorded training consistency only; it does not represent muscle growth, body fat, or a physical assessment.</p>
               </div>
 
               <div className="glass-card region-insight-card">
-                <span className="eyebrow">Body focus</span>
-                <h3>{selectedRegion}</h3>
+                <span className="eyebrow">Today's Focus</span>
+                <h3>{activeBodyLabel}</h3>
                 <div className="region-stats">
-                  <div><strong>{regionActivity.count}</strong><span>recorded exercises</span></div>
-                  <div><strong>{regionActivity.workoutCount}</strong><span>workouts with focus</span></div>
+                  <div><strong>{activeBodyActivity.count}</strong><span>recorded exercises</span></div>
+                  <div><strong>{activeBodyActivity.workoutCount}</strong><span>workouts with focus</span></div>
                 </div>
-                <p><strong>Consistency:</strong> {regionActivity.consistency}</p>
+                <p><strong>Consistency:</strong> {activeBodyActivity.consistency}</p>
                 <div className="region-recent">
-                  <strong>Recent activity</strong>
-                  {regionActivity.recent.length
-                    ? regionActivity.recent.map((entry) => <span key={entry.key}>{entry.label}</span>)
-                    : <span>No recorded {selectedRegion.toLowerCase()} activity yet.</span>}
+                  <strong>Current Activity</strong>
+                  {activeBodyActivity.recent.length
+                    ? activeBodyActivity.recent.map((entry) => <span key={entry.key}>{entry.label}</span>)
+                    : <span>No recorded activity for this focus yet.</span>}
                 </div>
-                <div className="region-next-step"><strong>Next step</strong><p>{regionActivity.recommendation}</p></div>
+                <div className="region-next-step"><strong>Next Focus</strong><p>{activeBodyActivity.recommendation}</p></div>
               </div>
             </div>
 
@@ -2837,7 +3376,7 @@ function App() {
                 onClick={() => setOnboardingStep((step) => Math.max(0, step - 1))}
                 disabled={onboardingStep === 0}
               >
-                Back
+                Previous
               </button>
               {onboardingStep < onboardingSteps.length - 1 ? (
                 <button type="button" className="primary-button" onClick={() => setOnboardingStep((step) => step + 1)}>
@@ -2871,7 +3410,7 @@ function App() {
                   <button type="button" aria-pressed={playerMode === 'watch'} className={playerMode === 'watch' ? 'active' : ''} onClick={() => setPlayerMode('watch')}>Watch</button>
                   <button type="button" aria-pressed={playerMode === 'practice'} className={playerMode === 'practice' ? 'active' : ''} onClick={() => setPlayerMode('practice')}>Practice</button>
                 </div>
-                <ExerciseAnimation exercise={currentExercise.name} playing={demoPlaying} slow={slowDemo} />
+                <ExerciseAnimation exercise={currentExercise.name} playing={demoPlaying} slow={slowDemo} language={language ?? 'en'} />
                 <div className="demo-controls" aria-label="Demonstration controls">
                   <button type="button" className="secondary-button" onClick={() => setDemoPlaying((playing) => !playing)}>{demoPlaying ? 'Pause animation' : 'Play animation'}</button>
                   <button type="button" className="secondary-button" onClick={() => { setDemoPlaying(false); window.setTimeout(() => setDemoPlaying(true), 80) }}>Replay</button>
@@ -2988,7 +3527,7 @@ function App() {
         <div className="detail-overlay" onClick={() => setSelectedHistory(null)}>
           <section className="history-detail-modal" role="dialog" aria-modal="true" aria-labelledby="history-detail-title" onClick={(event) => event.stopPropagation()}>
             <div className="section-heading">
-              <div><span className="eyebrow">Workout details</span><h3 id="history-detail-title">{selectedHistory.title}</h3></div>
+              <div><span className="eyebrow">Workout details</span>              <h3 id="history-detail-title">{language === 'ta' ? translate(selectedHistory.title, 'ta') : selectedHistory.title}</h3></div>
               <button type="button" className="ghost-button" onClick={() => setSelectedHistory(null)}>Close</button>
             </div>
             <p>{formatDate(selectedHistory.date)} · {selectedHistory.duration} min · {selectedHistory.goal}</p>
@@ -3035,6 +3574,7 @@ function App() {
 
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
+    </Localized>
   )
 }
 
